@@ -89,6 +89,7 @@ def get_networks():
 
 
 def group_containers_by_network(containers, networks):
+
     """根据网络关系对容器进行分组"""
     # 初始化网络分组
     network_groups = defaultdict(list)
@@ -189,17 +190,21 @@ def group_containers_by_network(containers, networks):
 
 
 def convert_container_to_service(container):
+    
     """将容器配置转换为docker-compose服务配置"""
     service = {}
     
-    # 基本信息
+    # 输出容器信息
+    print(f"容器信息:{container}")
+
+    # 获取容器名称
     container_name = container['Name'].lstrip('/')
     service['container_name'] = container_name
     
-    # 镜像
+    # 获取容器镜像
     service['image'] = container['Config']['Image']
     
-    # 重启策略
+    # 获取容器重启策略
     restart_policy = container['HostConfig'].get('RestartPolicy', {})
     if restart_policy and restart_policy.get('Name'):
         if restart_policy['Name'] != 'no':
@@ -207,7 +212,7 @@ def convert_container_to_service(container):
             if restart_policy['Name'] == 'on-failure' and restart_policy.get('MaximumRetryCount'):
                 service['restart'] = f"{restart_policy['Name']}:{restart_policy['MaximumRetryCount']}"
     
-    # 端口映射 - 优化连续端口和简化格式
+    # 获取容器端口映射
     port_mappings = {}
     for port in container['NetworkSettings'].get('Ports', {}) or {}:
         if container['NetworkSettings']['Ports'][port]:
@@ -280,7 +285,7 @@ def convert_container_to_service(container):
         if env:
             service['environment'] = env
     
-    # 数据卷
+    # 获取容器数据卷，包含volume和bind类型
     volumes = []
     for mount in container['Mounts']:
         if mount['Type'] == 'bind':
@@ -301,7 +306,7 @@ def convert_container_to_service(container):
     if volumes:
         service['volumes'] = volumes
     
-    # 网络配置
+    # 获取容器网络配置，host\bridge\macvlan网络模式一个容器一个compose，其它组合成group
     network_mode = container['HostConfig'].get('NetworkMode', '')
     if network_mode == 'host':
         service['network_mode'] = 'host'
@@ -313,36 +318,36 @@ def convert_container_to_service(container):
         if networks:
             service['networks'] = networks
     
-    # 链接
+    # 获取容器之间的link信息，如果有link指向，则组合到group中
     links = container['HostConfig'].get('Links', [])
     if links:
         service['links'] = [link.replace(':', ':') for link in links]
     
-    # 其他常用配置
+    # 获取特权模式
     if container['HostConfig'].get('Privileged'):
         service['privileged'] = container['HostConfig']['Privileged']
     
-    # 处理设备挂载
+    # 获取硬件设备挂载
     if container['HostConfig'].get('Devices'):
         devices = []
         for device in container['HostConfig']['Devices']:
             devices.append(f"{device['PathOnHost']}:{device['PathInContainer']}:{device['CgroupPermissions']}")
         service['devices'] = devices
     
-    # 只保留watchtower.enable标签
+    # 获取watchtower.enable标签
     if container['Config'].get('Labels'):
         labels = {}
         for label_key, label_value in container['Config']['Labels'].items():
             # 保留所有watchtower相关标签
             if 'watchtower' in label_key.lower():
                 labels[label_key] = label_value
-            # 保留其他重要标签
+            # 保留关于com/org/io开头的标签
             # elif label_key.startswith('com.') or label_key.startswith('org.') or label_key.startswith('io.'):
             #    labels[label_key] = label_value
         if labels:
             service['labels'] = labels
     
-    # 添加容器权限
+    # 获取容器的cap_add权限
     if container['HostConfig'].get('CapAdd'):
         caps = []
         if 'SYS_ADMIN' in container['HostConfig']['CapAdd']:
@@ -354,7 +359,8 @@ def convert_container_to_service(container):
         if caps:
             service['cap_add'] = caps
     
-    # 添加资源限制配置
+    ''' 
+    # 获取容器性能限制配置 ，极空间compose暂不支持性能限制配置，其它NAS可以用0.3版本。
     host_config = container.get('HostConfig', {})
     
     # CPU限制
@@ -395,6 +401,7 @@ def convert_container_to_service(container):
         if resources['limits'] or resources['reservations']:
             deploy['resources'] = resources
             service['deploy'] = deploy
+    '''
     
     return service
 

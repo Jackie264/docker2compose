@@ -1,34 +1,48 @@
 # Docker Compose 生成器
 
-这个工具用于读取极空间系统中的Docker容器信息，并自动生成对应的docker-compose.yaml文件。
+本工具用于读取极空间私有云系统中的存量Docker容器信息，自动生成对应的docker-compose.yaml文件。
 
 它会根据容器之间的网络关系（自定义网络或link连接）将相关容器分组，并为每组容器生成一个独立的docker-compose.yaml文件。
 
+理论上所有NAS都可以用，但是有些特意删除的功能，比如命令、性能限制、endpiont等，由于极空间不支持，所以删除了。
+
+-------------------------------------
+
 ## 功能特点
 
-- 读取系统中所有运行的Docker容器信息
+- 读取系统中所有Docker容器信息
 - 分析容器之间的网络关系（自定义network和link连接）
 - 根据网络关系将相关容器分组
-- 为每组容器生成对应的docker-compose.yaml文件
+- 为每组容器生成对应的docker-compose.yaml文件（根据首个容器名称）
 - 支持提取容器的各种配置，包括：
-  - 镜像信息
+  - 容器名称
+  - 镜像
   - 端口映射
   - 环境变量
-  - 数据卷挂载
-  - 网络设置
+  - 数据卷(volume/bind)
+  - 网络(host/bridge/macvlan单独配置，其它网络根据名称在一起)
   - 重启策略
-  - 工作目录
   - 特权模式
-  - 硬件设备映射
-  - cap_add内容
-  - 等其他常用配置
+  - 硬件设备挂载
+  - cap_add 能力
+  - ~~性能限制~~(极空间暂不支持，所以删除了)
+  - 其他配置等等
 
 ## 使用方法
 
 ### 通过compose部署（推荐）
 
-不需要安装Python环境，只需要安装Docker即可：
+启用前确保系统安装了docker
 
+**🔻docker cli**
+```
+docker run -itd --name d2c \
+  -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  -v /{path}:/app/compose \
+  crpi-xg6dfmt5h2etc7hg.cn-hangzhou.personal.cr.aliyuncs.com/cherry4nas/d2c:latest
+```
+
+**🔻docker-compose.yaml**
 ```
 services:
   d2c:
@@ -50,13 +64,19 @@ services:
 chmod +x d2c.py
 ```
 
-3. 运行脚本
+3. 安装python所需的依赖包
+
+```bash
+pip install -r requirements.txt
+```
+
+4. 运行脚本
 
 ```bash
 ./run.sh
 ```
 
-4. 脚本会在当前目录下创建一个`compose`文件夹，并在其中生成docker-compose.yaml文件
+5. 脚本会在当前目录下创建一个`compose`文件夹，并在其中生成docker-compose.yaml文件
 
 ## 输出说明
 
