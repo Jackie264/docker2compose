@@ -27,11 +27,12 @@
   - cap_add 能力
   - ~~性能限制~~(极空间暂不支持，暂时移除)
   - command和entrypoint(在ZOS系统中不生成)
+  - 健康检测
   - 其他配置等等
 
-## 使用方法
+# 使用方法
 
-### 1、通过compose部署（推荐）
+## 1、通过compose部署（推荐）
 
 启用前确保系统安装了docker
 
@@ -40,18 +41,24 @@
 docker run -itd --name d2c \
   -v /var/run/docker.sock:/var/run/docker.sock:ro \
   -v /{path}:/app/compose \
-  -e NAS=debian \ # 可选，用于判断NAS系统，默认debian
-  -e CRON="0 */12 * * *" \ # 可选，用于定时执行，默认12小时执行一次
-  -e NETWORK=true \ # 可选，控制bridge网络配置的显示方式，默认true
-  --restart=unless-stopped \
+  -e NAS=debian \ # 可选，默认debian，详见下文说明
+  -e CRON="0 */12 * * *" \ # 可选，默认每天0点起，每天12小时执行一次，详见下文说明
+  -e NETWORK=true \ # 可选，默认true，详见下文说明
+  -e TZ=Asia/Shanghai \ # 可选，默认Asia/Shanghai
+  # 阿里云镜像源，国内选择
   crpi-xg6dfmt5h2etc7hg.cn-hangzhou.personal.cr.aliyuncs.com/cherry4nas/d2c:latest
+  # github镜像源
+  # ghcr.io/coracoo/d2c:latest 
 ```
 
 **🔻docker-compose.yaml**
 ```
 services:
   d2c:
+    # 阿里云镜像源，国内选择
     image: crpi-xg6dfmt5h2etc7hg.cn-hangzhou.personal.cr.aliyuncs.com/cherry4nas/d2c:latest
+    # github镜像源
+    # image: ghcr.io/coracoo/d2c:latest
     container_name: d2c
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -60,20 +67,22 @@ services:
       - NAS=debian
       - CRON="0 */12 * * *"
       - NETWORK=true
-    restart: unless-stopped
+      - TZ=Asia/Shanghai
 ```
 ### 环境变量说明
 
 - `NAS`: 指定NAS系统类型
   - `debian`: 默认值，生成完整配置
   - `zos`: 极空间系统，不生成command和entrypoint配置
-- `CRON`: 定时执行配置，使用标准cron表达式
-  - 默认值：`0 */12 * * *`（每12小时执行一次）
-  - 示例：`0 2 * * *`（每天凌晨2点执行）
+
+- `CRON`: 定时执行配置，使用标准cron表达式，示例：`0 2 * * *`（每天凌晨2点执行）
+  - 默认值：`0 */12 * * *`（每天0点起，每天12小时执行一次）
   - `once`: 执行一次后退出
+
 - `NETWORK`: 控制bridge网络配置的显示方式
   - `true`: 默认值，显式配置bridge网络模式，即新创建的compose还是在bridge网络下
   - `false`: 隐式配置bridge网络模式，即新创建的compose会遵循compose的逻辑，创建新的网络
+
 - `TZ`: 时区，用于定时执行
   - 默认值：`Asia/Shanghai`
 
@@ -81,7 +90,7 @@ services:
 - `/app/compose`: 脚本输出目录，默认值为`/app/compose`
 - `YYYY_MM_DD_HH_MM`: 脚本执行时间，格式为`YYYY_MM_DD_HH_MM`，例如`2023_05_04_15_00`
 
-### 2、直接运行（需要Python环境）
+## 2、直接运行（需要Python环境）
 
 如果您的系统已安装Python环境，也可以直接运行：
 
@@ -123,11 +132,12 @@ pip install -r requirements.txt
 
 # 更新说明
 
-## 2023-05-04(v1.0.1)
+## 2023-05-04(v1.0.3)
 
 1. 添加了command、entrypoint的生成，若环境变量配置NAS配置为ZOS，则不生成
 2. 添加了环境变量：NAS、CRON、TZ、NETWORK
-3. 支持定时执行，默认每12小时执行一次，可通过CRON环境变量自定义执行时间
-4. 支持一次性任务执行（CRON=once）
-5. 重新修改yaml文件生成路径，在`./compose/`路径下，按`YYYY-MM-DD-HH-MM`时间戳组织输出文件
-6. 完善了README.md
+3. 支持定时执行，支持标准CRON表达式；支持一次性任务执行（CRON=once）
+4. 重新修改yaml文件生成路径，在`./compose/`路径下，按`YYYY-MM-DD-HH-MM`时间戳组织输出文件
+5. 完善日志输出内容；完善README.md
+6. 创建Github Action，自动构建并推送到github和阿里云
+7. 适配 amd64/arm64/arm7 架构

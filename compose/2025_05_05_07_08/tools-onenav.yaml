@@ -1,0 +1,16 @@
+version: '3'
+services:
+  tools_onenav:
+    container_name: tools-onenav
+    image: helloz/onenav:latest
+    environment:
+      USER: masteradmin
+      PASSWORD: HZbjws!@121234
+      TZ: Asia/Shanghai
+    volumes:
+    - 53a0ecfec677e91e8a94c82fbed0131dbc24d3dce05c09a067261b2e35862ce4:/data/wwwroot/default/data:rw
+    networks:
+    - onenav_default
+networks:
+  onenav_default:
+    external: true

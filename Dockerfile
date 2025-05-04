@@ -43,8 +43,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # 配置pip国内源并安装依赖
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple \
-    && pip install pyyaml
-
+    && pip install pyyaml && pip3 install croniter
+    
 # 复制应用文件并设置权限
 COPY . /app/
 RUN chmod +x /app/d2c.py /app/run.sh

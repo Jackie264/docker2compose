@@ -1,0 +1,14 @@
+version: '3'
+services:
+  beyondnetwork_edge:
+    container_name: beyondnetwork_edge
+    image: registry.cn-shenzhen.aliyuncs.com/beyondnetwork/edge
+    restart: always
+    environment:
+      EDGE_KEY: 2140614addb744a2beaebb82ce646e59
+    network_mode: host
+    privileged: true
+    command:
+    - /bin/sh
+    - -c
+    - /start.sh

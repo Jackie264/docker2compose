@@ -1,0 +1,16 @@
+version: '3'
+services:
+  silly_khayyam:
+    container_name: silly_khayyam
+    image: redis:8.0-M03-bookworm
+    environment:
+      GOSU_VERSION: '1.17'
+      REDIS_DOWNLOAD_URL: https://github.com/redis/redis/archive/refs/tags/8.0-m03.tar.gz
+      REDIS_DOWNLOAD_SHA: 46d9a1dfb22c48e4a114ad9b620986d8bbca811d347b1fe759b5bb7750dac5ad
+    volumes:
+    - a643e2fbb280a4f1c4cb680e74801e3f93795ec5556b4593e074fc91a6e73867:/data:rw
+    network_mode: bridge
+    command:
+    - redis-server
+    entrypoint:
+    - docker-entrypoint.sh
