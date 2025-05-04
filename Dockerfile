@@ -1,5 +1,5 @@
 # 使用多平台基础镜像
-FROM --platform=$TARGETPLATFORM python:3.9-slim
+FROM python:3.9-slim
 
 # 添加环境变量
 ENV NAS=debian

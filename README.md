@@ -81,14 +81,6 @@ services:
 - `/app/compose`: 脚本输出目录，默认值为`/app/compose`
 - `YYYY_MM_DD_HH_MM`: 脚本执行时间，格式为`YYYY_MM_DD_HH_MM`，例如`2023_05_04_15_00`
 
-### 输出目录结构
-/app/compose/
-└── YYYY_MM_DD_HH_MM/
-├── container1.yaml
-├── container2.yaml
-└── container-group.yaml
-
-
 ### 2、直接运行（需要Python环境）
 
 如果您的系统已安装Python环境，也可以直接运行：
@@ -131,7 +123,7 @@ pip install -r requirements.txt
 
 # 更新说明
 
-## 1️⃣2023-05-04(v1.0.1)
+## 2023-05-04(v1.0.1)
 
 1. 添加了command、entrypoint的生成，若环境变量配置NAS配置为ZOS，则不生成
 2. 添加了环境变量：NAS、CRON、TZ、NETWORK
