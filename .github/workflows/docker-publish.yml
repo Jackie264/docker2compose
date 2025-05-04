@@ -6,6 +6,11 @@ on:
       - "v*.*.*"
   workflow_dispatch:
 
+# 添加权限配置
+permissions:
+  contents: read
+  packages: write
+
 env:
   IMAGE_NAME: d2c
   
@@ -49,7 +54,10 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=
-      
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            maintainer="可爱的小cherry"
+            
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
