@@ -1,6 +1,20 @@
-FROM python:3.9-slim
+# 使用多平台基础镜像
+FROM --platform=$TARGETPLATFORM python:3.9-slim
+
+# 添加环境变量
+ENV NAS=debian
+ENV CRON="0 */12 * * *"
+ENV NETWORK=true
+ENV TZ=Asia/Shanghai
 
 WORKDIR /app
+
+# 设置构建参数
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+
+# 根据目标平台安装对应架构的依赖
+RUN echo "Building for $TARGETPLATFORM on $BUILDPLATFORM"
 
 # 配置国内APT源
 RUN echo "deb http://mirrors.aliyun.com/debian/ bullseye main non-free contrib" > /etc/apt/sources.list && \
@@ -12,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     gnupg \
+    cron \
     && mkdir -p /etc/apt/keyrings \
     && curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
     && chmod a+r /etc/apt/keyrings/docker.gpg \

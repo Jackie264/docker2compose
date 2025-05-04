@@ -95,7 +95,7 @@ def group_containers_by_network(containers, networks):
     network_groups = defaultdict(list)
     container_to_networks = defaultdict(list)
     container_links = defaultdict(list)
-    special_network_containers = []  # 重命名为更具描述性的名称
+    special_network_containers = []
     
     # 记录每个容器所属的网络
     for container in containers:
@@ -190,12 +190,16 @@ def group_containers_by_network(containers, networks):
 
 
 def convert_container_to_service(container):
-    
     """将容器配置转换为docker-compose服务配置"""
     service = {}
-    
+        
+    # 获取NAS环境变量
+    nas_env = os.getenv('NAS', 'debian').lower()
+    network_env = os.getenv('NETWORK', 'true').lower() == 'true'
+    print(f"列出NAS环境变量:1.系统版本是：{nas_env};2.网络环境变量是：{network_env};")
+
     # 输出容器信息
-    print(f"容器信息:{container}")
+    # print(f"容器信息:{container}")
 
     # 获取容器名称
     container_name = container['Name'].lstrip('/')
@@ -306,10 +310,19 @@ def convert_container_to_service(container):
     if volumes:
         service['volumes'] = volumes
     
-    # 获取容器网络配置，host\bridge\macvlan网络模式一个容器一个compose，其它组合成group
+    # 统一网络配置处理
     network_mode = container['HostConfig'].get('NetworkMode', '')
+    
     if network_mode == 'host':
         service['network_mode'] = 'host'
+    elif network_mode == 'container':
+        linked_container = network_mode.split(':')[1]
+        service['network_mode'] = f"container:{linked_container}"
+    elif network_mode == 'bridge':
+        if network_env:
+            service['network_mode'] = 'bridge'
+    elif network_mode != 'default':
+        service['networks'] = [network_mode]
     else:
         networks = []
         for network_name in container['NetworkSettings'].get('Networks', {}):
@@ -317,6 +330,8 @@ def convert_container_to_service(container):
                 networks.append(network_name)
         if networks:
             service['networks'] = networks
+        elif network_env:
+            service['network_mode'] = 'bridge'
     
     # 获取容器之间的link信息，如果有link指向，则组合到group中
     links = container['HostConfig'].get('Links', [])
@@ -403,11 +418,40 @@ def convert_container_to_service(container):
             service['deploy'] = deploy
     '''
     
+    # 获取容器的command和entrypoint配置，ZOS系统不执行
+    if nas_env != 'zos':
+        # 获取容器的command配置
+        if container['Config'].get('Cmd'):
+            service['command'] = container['Config']['Cmd']
+        
+        # 获取容器的entrypoint配置
+        if container['Config'].get('Entrypoint'):
+            service['entrypoint'] = container['Config']['Entrypoint']
+    
+    # 获取容器的健康检查配置
+    if container['Config'].get('Healthcheck'):
+        healthcheck = {
+            'test': container['Config']['Healthcheck'].get('Test', []),
+            'interval': container['Config']['Healthcheck'].get('Interval'),
+            'timeout': container['Config']['Healthcheck'].get('Timeout'),
+            'retries': container['Config']['Healthcheck'].get('Retries')
+        }
+        # 移除None值
+        healthcheck = {k: v for k, v in healthcheck.items() if v is not None}
+        if healthcheck:
+            service['healthcheck'] = healthcheck
+    
     return service
 
 
 def generate_compose_file(containers_group, all_containers, output_dir):
     """为一组容器生成docker-compose.yaml文件"""
+    # 使用环境变量中的输出目录
+    output_dir = os.getenv('OUTPUT_DIR', 'compose')
+    
+    # 确保输出目录存在
+    os.makedirs(output_dir, exist_ok=True)
+    
     compose = {
         'version': '3',
         'services': {},
