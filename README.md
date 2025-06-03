@@ -132,12 +132,21 @@ pip install -r requirements.txt
 
 # 更新说明
 
-## 2023-05-04(v1.0.3)
+## 2025-05-04(v1.0.4)
+- 改进了macvlan网络配置处理，现在能够正确导出IPv4地址、IPv6地址和MAC地址
+- 修复了extra_hosts配置处理，现在能够正确从容器的HostConfig.ExtraHosts获取配置
+- 优化了volumes处理逻辑，支持中文路径，确保在生成的compose文件中保留原始路径
+- 修复了链接处理逻辑，现在能够正确处理容器链接格式
+- 改进了YAML生成逻辑，使用自定义Dumper类确保正确的缩进格式
+- 添加了更多错误处理和日志输出，便于调试和跟踪处理过程
 
-1. 添加了command、entrypoint的生成，若环境变量配置NAS配置为ZOS，则不生成
-2. 添加了环境变量：NAS、CRON、TZ、NETWORK
-3. 支持定时执行，支持标准CRON表达式；支持一次性任务执行（CRON=once）
-4. 重新修改yaml文件生成路径，在`./compose/`路径下，按`YYYY-MM-DD-HH-MM`时间戳组织输出文件
-5. 完善日志输出内容；完善README.md
-6. 创建Github Action，自动构建并推送到github和阿里云
-7. 适配 amd64/arm64/arm7 架构
+
+## 2025-05-04(v1.0.3)
+
+- 添加了command、entrypoint的生成，若环境变量配置NAS配置为ZOS，则不生成
+- 添加了环境变量：NAS、CRON、TZ、NETWORK
+- 支持定时执行，支持标准CRON表达式；支持一次性任务执行（CRON=once）
+- 重新修改yaml文件生成路径，在`./compose/`路径下，按`YYYY-MM-DD-HH-MM`时间戳组织输出文件
+- 完善日志输出内容；完善README.md
+- 创建Github Action，自动构建并推送到github和阿里云
+- 适配 amd64/arm64/arm7 架构

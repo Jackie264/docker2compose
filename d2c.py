@@ -291,22 +291,21 @@ def convert_container_to_service(container):
     
     # 获取容器数据卷，包含volume和bind类型
     volumes = []
-    for mount in container['Mounts']:
-        if mount['Type'] == 'bind':
+    if container['Mounts']:
+        for mount in container['Mounts']:
             mode = mount.get('RW', True)
             if mode:
                 mode_suffix = 'rw'
             else:
                 mode_suffix = 'ro'
-            volumes.append(f"{mount['Source']}:{mount['Destination']}:{mode_suffix}")
-        elif mount['Type'] == 'volume':
-            mode = mount.get('RW', True)
-            if mode :
-                mode_suffix = 'rw'
-            else:
-                mode_suffix = 'ro'
-                print('ro')
-            volumes.append(f"{mount['Name']}:{mount['Destination']}:{mode_suffix}")
+            if mount['Type'] == 'volume':
+                source = mount['Name']
+                target = mount['Destination']
+                volumes.append(f"{source}:{target}:{mode_suffix}")
+            elif mount['Type'] == 'bind':
+                source = mount['Source']
+                target = mount['Destination']
+                volumes.append(f"{source}:{target}:{mode_suffix}")
     if volumes:
         service['volumes'] = volumes
     
@@ -322,21 +321,73 @@ def convert_container_to_service(container):
         if network_env:
             service['network_mode'] = 'bridge'
     elif network_mode != 'default':
-        service['networks'] = [network_mode]
+        # 处理自定义网络模式
+        if not service.get('networks'):
+            service['networks'] = {}
+        service['networks'][network_mode] = {'external': True}
     else:
-        networks = []
-        for network_name in container['NetworkSettings'].get('Networks', {}):
+        # 处理网络配置
+        networks_config = container['NetworkSettings'].get('Networks', {})
+        for network_name, network_config in networks_config.items():
             if network_name not in ['bridge', 'host', 'none']:
-                networks.append(network_name)
-        if networks:
-            service['networks'] = networks
-        elif network_env:
-            service['network_mode'] = 'bridge'
+                if not service.get('networks'):
+                    service['networks'] = {}
+                
+                # 初始化网络配置
+                network_settings = {}
+                
+                print(f"处理网络 {network_name} 的配置: {json.dumps(network_config, indent=2)}")
+                
+                # 处理 IPv4 配置
+                ipam_config = network_config.get('IPAMConfig')
+                if ipam_config and isinstance(ipam_config, dict) and ipam_config.get('IPv4Address'):
+                    network_settings['ipv4_address'] = ipam_config['IPv4Address']
+                    print(f"从 IPAMConfig 获取到 IPv4 地址: {ipam_config['IPv4Address']}")
+                elif network_config.get('IPAddress') and network_config['IPAddress'] != "":
+                    network_settings['ipv4_address'] = network_config['IPAddress']
+                    print(f"从 IPAddress 获取到 IPv4 地址: {network_config['IPAddress']}")
+                
+                # 处理 IPv6 配置
+                if ipam_config and isinstance(ipam_config, dict) and ipam_config.get('IPv6Address'):
+                    network_settings['ipv6_address'] = ipam_config['IPv6Address']
+                    print(f"从 IPAMConfig 获取到 IPv6 地址: {ipam_config['IPv6Address']}")
+                elif network_config.get('GlobalIPv6Address') and network_config['GlobalIPv6Address'] != "":
+                    network_settings['ipv6_address'] = network_config['GlobalIPv6Address']
+                    print(f"从 GlobalIPv6Address 获取到 IPv6 地址: {network_config['GlobalIPv6Address']}")
+                
+                # 处理 MAC 地址
+                if network_config.get('MacAddress') and network_config['MacAddress'] != "":
+                    network_settings['mac_address'] = network_config['MacAddress']
+                    print(f"获取到 MAC 地址: {network_config['MacAddress']}")
+                
+                # 如果有网络设置，添加到服务配置中
+                if network_settings:
+                    service['networks'][network_name] = network_settings
+                    print(f"为服务添加网络配置: {network_name} = {network_settings}")
+                else:
+                    service['networks'][network_name] = {'external': True}
+                    print(f"为服务添加外部网络: {network_name}")
+    
+    # 添加 extra_hosts - 修复为获取容器的 ExtraHosts 配置
+    extra_hosts = container['HostConfig'].get('ExtraHosts', [])
+    if extra_hosts:
+        service['extra_hosts'] = extra_hosts
     
     # 获取容器之间的link信息，如果有link指向，则组合到group中
     links = container['HostConfig'].get('Links', [])
     if links:
-        service['links'] = [link.replace(':', ':') for link in links]
+        # 修复链接处理逻辑
+        service_links = []
+        for link in links:
+            # 链接格式通常是 /container_name:/alias
+            parts = link.split(':')
+            if len(parts) >= 2:
+                container_name = parts[0].lstrip('/')
+                alias = parts[1].lstrip('/')
+                service_links.append(f"{container_name}:{alias}")
+            else:
+                service_links.append(link.lstrip('/'))
+        service['links'] = service_links
     
     # 获取特权模式
     if container['HostConfig'].get('Privileged'):
@@ -494,10 +545,18 @@ def generate_compose_file(containers_group, all_containers, output_dir):
     # 确保输出目录存在
     os.makedirs(output_dir, exist_ok=True)
     
+    # 自定义YAML表示类，确保正确的缩进
+    class MyDumper(yaml.Dumper):
+        def increase_indent(self, flow=False, indentless=False):
+            return super(MyDumper, self).increase_indent(flow, False)
+    
+    # 生成YAML文件，使用自定义的Dumper类
+    yaml_content = yaml.dump(compose, Dumper=MyDumper, default_flow_style=False, sort_keys=False, allow_unicode=True, indent=2)
+    
     # 写入文件
     file_path = os.path.join(output_dir, filename)
-    with open(file_path, 'w') as f:
-        yaml.dump(compose, f, default_flow_style=False, sort_keys=False)
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write(yaml_content)
     
     print(f"已生成 {file_path}")
     return file_path
