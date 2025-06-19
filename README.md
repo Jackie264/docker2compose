@@ -1,10 +1,29 @@
-# Docker Compose 生成器
+# 前言
 
 本工具用于读取极空间私有云系统中的存量Docker容器信息，自动生成对应的docker-compose.yaml文件。
 
 它会根据容器之间的网络关系（自定义网络或link连接）将相关容器分组，并为每组容器生成一个独立的docker-compose.yaml文件。
 
 理论上所有NAS都可以用，但是有些特意删除的功能，比如命令、性能限制、endpiont等，由于极空间不支持，所以删除了。
+
+# 我的仓库
+
+**1️⃣** ： 中文docker项目集成项目： [https://github.com/coracoo/awesome_docker_cn](https://github.com/coracoo/awesome_docker_cn)
+
+**2️⃣** ： docker转compose：[https://github.com/coracoo/docker2compose](https://github.com/coracoo/docker2compose)
+
+**3️⃣** ： 容器部署iSCSI，支持绿联极空间飞牛：[https://github.com/coracoo/d-tgtadm/](https://github.com/coracoo/d-tgtadm/)
+
+
+# 我的频道
+
+### 首发平台——什么值得买：
+
+### [⭐点我关注](https://zhiyou.smzdm.com/member/9674309982/) 
+
+### 微信公众号：
+
+![关注](https://github.com/user-attachments/assets/9a1c4de0-2f08-413f-ab7f-d7d463af1698)
 
 -------------------------------------
 
