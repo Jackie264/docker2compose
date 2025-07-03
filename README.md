@@ -29,6 +29,7 @@
 
 ## 功能特点
 
+- 纯AI打造，有问题提issuse，特殊容器贴原docker cli
 - 读取系统中所有Docker容器信息
 - 分析容器之间的网络关系（自定义network和link连接）
 - 根据网络关系将相关容器分组
@@ -56,22 +57,17 @@
 启用前确保系统安装了docker
 
 **🔻docker cli**
-```
+```bash
 docker run -itd --name d2c \
   -v /var/run/docker.sock:/var/run/docker.sock:ro \
   -v /{path}:/app/compose \
-  -e NAS=debian \ # 可选，默认debian，详见下文说明
-  -e CRON="0 */12 * * *" \ # 可选，默认每天0点起，每天12小时执行一次，详见下文说明
-  -e NETWORK=true \ # 可选，默认true，详见下文说明
-  -e TZ=Asia/Shanghai \ # 可选，默认Asia/Shanghai
-  # 阿里云镜像源，国内选择
+  -p 5000:5000 \
   crpi-xg6dfmt5h2etc7hg.cn-hangzhou.personal.cr.aliyuncs.com/cherry4nas/d2c:latest
-  # github镜像源
-  # ghcr.io/coracoo/d2c:latest 
+  # 或使用github镜像源：ghcr.io/coracoo/d2c:latest
 ```
 
 **🔻docker-compose.yaml**
-```
+```yaml
 services:
   d2c:
     # 阿里云镜像源，国内选择
@@ -79,28 +75,40 @@ services:
     # github镜像源
     # image: ghcr.io/coracoo/d2c:latest
     container_name: d2c
+    ports:
+      - "5000:5000"  # Web UI端口
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /{path}:/app/compose
-    environment:
-      - NAS=debian
-      - CRON="0 */12 * * *"
-      - NETWORK=true
-      - TZ=Asia/Shanghai
 ```
-### 环境变量说明
+
+### 🌐 Web UI访问
+
+部署完成后，可通过浏览器访问Web界面：
+- 本地访问：`http://localhost:5000`
+- 局域网访问：`http://你的IP地址:5000`
+
+**Web UI功能特点：**
+- 📊 **容器管理**：实时查看所有Docker容器状态，按网络关系自动分组
+- 📄 **Compose预览**：直接在界面中查看生成的docker-compose.yaml文件内容
+- ⏰ **调度器监控**：实时监控定时任务状态，查看执行日志
+- 🚀 **立即执行**：一键执行compose文件生成任务
+- 🗂️ **文件管理**：浏览和管理生成的compose文件目录
+- 📝 **日志查看**：查看详细的执行日志，支持清空日志功能
+
+### 配置文件说明 (/app/config.json)
 
 - `NAS`: 指定NAS系统类型
   - `debian`: 默认值，生成完整配置
   - `zos`: 极空间系统，不生成command和entrypoint配置
 
-- `CRON`: 定时执行配置，使用标准cron表达式，示例：`0 2 * * *`（每天凌晨2点执行）
+- `CRON`: 定时执行配置，支持5位\6位Cron规则，示例：`0 2 * * *`（每天凌晨2点执行）
   - 默认值：`0 */12 * * *`（每天0点起，每天12小时执行一次）
   - `once`: 执行一次后退出
 
 - `NETWORK`: 控制bridge网络配置的显示方式
-  - `true`: 默认值，显式配置bridge网络模式，即新创建的compose还是在bridge网络下
-  - `false`: 隐式配置bridge网络模式，即新创建的compose会遵循compose的逻辑，创建新的网络
+  - `true`: 默认值，在生成的compose.yaml中显式添加 `network_mode: bridge` 配置
+  - `false`: 隐藏bridge网络配置，不在compose.yaml中显示 `network_mode: bridge`（因为bridge是Docker默认网络模式）
 
 - `TZ`: 时区，用于定时执行
   - 默认值：`Asia/Shanghai`
@@ -151,24 +159,43 @@ pip install -r requirements.txt
 
 # 更新说明
 
+## 2025-07-03(v1.1.0)
+- 🎉 **新增Web UI界面**：
+  - 采用全新得现代化的图形界面设计，原CLI模式保留不变。
+  - 左侧为容器分组展示，支持按网络关系自动分组，包含运行状态、容器数量等。
+  - 中间为文件列表，展示`/app/compose`目录下所有得`yaml`文件。
+  - 右侧是Compose编辑区域，支持勾选docker整合compose。
+  - 新增设置页面，用来编辑配置文件。
+  - 新增任务计划页面，用来执行定时任务。
+  - 新增日志查看页面，用来查看任务执行日志。
+
+- 🔧 **修改代码逻辑**：
+  - 去除环境变量，所有参数通过`/app/config/json`来配置（参考前面得配置文件说明）。
+  - 新增系统CRON和Python调度器来执行CRON任务，彻底解决5、6位CRON的问题。
+  - 初次登录会自动生成所有得容器yaml文件，保存在`/app/compose`目录下。
+
+- 🐛 **修复已知问题**：
+  - 解决多个稳定性和兼容性问题
+  - 改进错误处理和异常捕获机制
+  - 优化代码注释和函数级文档
+
 ## 2025-07-03(v1.0.5)
 - 修复了volumes挂载权限处理逻辑，移除不必要的:rw后缀，只在只读模式时添加:ro后缀
 - 优化了healthcheck的CMD-SHELL格式处理，确保生成符合Docker Compose规范的配置
 - 改进了volumes处理逻辑，使生成的compose文件更简洁，符合Docker Compose最佳实践
 - 添加了healthcheck处理过程的调试日志输出，便于跟踪问题
 - 完善了代码注释和错误处理逻辑
+- 修复了cron表达式的时区问题，确保定时任务在正确的时区执行
+- 修复了extra_hosts配置处理，现在能够正确从容器的HostConfig.ExtraHosts获取配置
 
 ## 2025-06-04(v1.0.4)
 - 改进了macvlan网络配置处理，现在能够正确导出IPv4地址、IPv6地址和MAC地址
-- 修复了extra_hosts配置处理，现在能够正确从容器的HostConfig.ExtraHosts获取配置
 - 优化了volumes处理逻辑，支持中文路径，确保在生成的compose文件中保留原始路径
 - 修复了链接处理逻辑，现在能够正确处理容器链接格式
 - 改进了YAML生成逻辑，使用自定义Dumper类确保正确的缩进格式
 - 添加了更多错误处理和日志输出，便于调试和跟踪处理过程
 
-
 ## 2025-05-05(v1.0.3)
-
 - 添加了command、entrypoint的生成，若环境变量配置NAS配置为ZOS，则不生成
 - 添加了环境变量：NAS、CRON、TZ、NETWORK
 - 支持定时执行，支持标准CRON表达式；支持一次性任务执行（CRON=once）

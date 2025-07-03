@@ -8,6 +8,66 @@ import re
 from collections import defaultdict
 
 
+def load_config():
+    """加载配置，优先从config.json读取，如果没有则从环境变量读取"""
+    config_file = '/app/config.json'
+    
+    # 默认配置
+    default_config = {
+        'NAS': 'debian',
+        'CRON': 'once',
+        'NETWORK': 'true',
+        'TZ': 'Asia/Shanghai'
+    }
+    
+    # 如果配置文件存在，读取配置文件
+    if os.path.exists(config_file):
+        try:
+            with open(config_file, 'r', encoding='utf-8') as f:
+                file_config = json.load(f)
+            print(f"从配置文件加载配置: {config_file}")
+            # 合并默认配置和文件配置
+            config = {**default_config, **file_config}
+            return config
+        except Exception as e:
+            print(f"读取配置文件失败: {e}，使用环境变量")
+    
+    # 如果配置文件不存在或读取失败，从环境变量读取
+    config = {
+        'NAS': os.getenv('NAS', default_config['NAS']),
+        'CRON': os.getenv('CRON', default_config['CRON']),
+        'NETWORK': os.getenv('NETWORK', default_config['NETWORK']),
+        'TZ': os.getenv('TZ', default_config['TZ'])
+    }
+    print("从环境变量加载配置")
+    return config
+
+
+def ensure_config_file():
+    """确保配置文件存在，如果不存在则创建默认配置文件"""
+    config_file = '/app/config.json'
+    
+    if not os.path.exists(config_file):
+        default_config = {
+            "// 配置说明": "以下是D2C的配置选项",
+            "// NAS": "指定NAS系统类型: debian(默认,生成完整配置) 或 zos(极空间系统,不生成command和entrypoint)",
+            "NAS": "debian",
+            "// CRON": "定时执行配置,使用标准cron表达式,如'0 2 * * *'(每天凌晨2点),'once'(执行一次后退出)",
+            "CRON": "once",
+            "// NETWORK": "控制bridge网络配置的显示方式: true(显示) 或 false(隐藏)",
+            "NETWORK": "true",
+            "// TZ": "时区设置,如Asia/Shanghai、Europe/London等",
+            "TZ": "Asia/Shanghai"
+        }
+        
+        try:
+            with open(config_file, 'w', encoding='utf-8') as f:
+                json.dump(default_config, f, indent=2, ensure_ascii=False)
+            print(f"已创建默认配置文件: {config_file}")
+        except Exception as e:
+            print(f"创建配置文件失败: {e}")
+
+
 def run_command(command):
     """执行shell命令并返回输出
     
@@ -188,10 +248,11 @@ def convert_container_to_service(container):
     """将容器配置转换为docker-compose服务配置"""
     service = {}
         
-    # 获取NAS环境变量
-    nas_env = os.getenv('NAS', 'debian').lower()
-    network_env = os.getenv('NETWORK', 'true').lower() == 'true'
-    print(f"列出NAS环境变量:1.系统版本是：{nas_env};2.网络环境变量是：{network_env};")
+    # 获取配置
+    config = load_config()
+    nas_env = config['NAS'].lower()
+    network_env = config['NETWORK'].lower() == 'true'
+    print(f"列出配置信息:1.系统版本是：{nas_env};2.网络环境变量是：{network_env};")
 
     # 输出容器信息
     # print(f"容器信息:{container}")
@@ -582,10 +643,17 @@ def convert_container_to_service(container):
     return service
 
 
-def generate_compose_file(containers_group, all_containers, output_dir):
-    """为一组容器生成docker-compose.yaml文件"""
-    # 使用环境变量中的输出目录
-    output_dir = os.getenv('OUTPUT_DIR', 'compose')
+def generate_compose_file(containers_group, all_containers, output_dir=None):
+    """为一组容器生成docker-compose.yaml文件
+    
+    Args:
+        containers_group: 容器ID列表
+        all_containers: 所有容器信息
+        output_dir: 输出目录，如果为None则从环境变量获取
+    """
+    # 使用环境变量中的输出目录，如果未指定则使用默认值
+    if output_dir is None:
+        output_dir = os.getenv('OUTPUT_DIR', 'compose')
     
     # 确保输出目录存在
     os.makedirs(output_dir, exist_ok=True)
@@ -646,9 +714,14 @@ def generate_compose_file(containers_group, all_containers, output_dir):
     class MyDumper(yaml.Dumper):
         def increase_indent(self, flow=False, indentless=False):
             return super(MyDumper, self).increase_indent(flow, False)
+        
+        def write_line_break(self, data=None):
+            super(MyDumper, self).write_line_break(data)
+            if len(self.indents) == 1:
+                super(MyDumper, self).write_line_break()
     
     # 生成YAML文件，使用自定义的Dumper类
-    yaml_content = yaml.dump(compose, Dumper=MyDumper, default_flow_style=False, sort_keys=False, allow_unicode=True, indent=2)
+    yaml_content = yaml.dump(compose, Dumper=MyDumper, default_flow_style=False, sort_keys=False, allow_unicode=True, indent=2, width=float('inf'))
     
     # 写入文件
     file_path = os.path.join(output_dir, filename)
@@ -660,6 +733,9 @@ def generate_compose_file(containers_group, all_containers, output_dir):
 
 
 def main():
+    # 确保配置文件存在
+    ensure_config_file()
+    
     print("开始读取Docker容器信息...")
     containers = get_containers()
     if not containers:
@@ -676,8 +752,9 @@ def main():
     container_groups = group_containers_by_network(containers, networks)
     print(f"分组完成，共 {len(container_groups)} 个分组")
     
-    # 创建输出目录
-    output_dir = "compose"
+    # 获取输出目录，优先使用环境变量中的设置
+    output_dir = os.getenv('OUTPUT_DIR', 'compose')
+    print(f"输出目录: {output_dir}")
     
     print("生成docker-compose文件...")
     generated_files = []
@@ -689,6 +766,77 @@ def main():
     print("\n生成完成！生成的文件列表:")
     for file_path in generated_files:
         print(f"- {file_path}")
+
+
+def generate_compose_for_selected_containers(container_ids):
+    """为指定的容器ID列表生成compose配置
+    
+    Args:
+        container_ids: 容器ID列表（可以是短ID）
+    
+    Returns:
+        dict: compose配置字典，如果失败返回None
+    """
+    print(f"开始为指定容器生成compose配置: {container_ids}")
+    
+    # 获取所有容器信息
+    all_containers = get_containers()
+    if not all_containers:
+        print("未找到Docker容器")
+        return None
+    
+    # 过滤出指定的容器（支持短ID匹配）
+    selected_containers = []
+    for container in all_containers:
+        container_short_id = container['Id'][:12]
+        if container_short_id in container_ids or container['Id'] in container_ids:
+            selected_containers.append(container)
+    
+    if not selected_containers:
+        print(f"未找到指定的容器: {container_ids}")
+        return None
+    
+    print(f"找到 {len(selected_containers)} 个匹配的容器")
+    
+    # 获取网络信息
+    networks = get_networks()
+    
+    # 生成compose配置
+    compose = {
+        'version': '3.8',
+        'services': {},
+        'networks': {}
+    }
+    
+    used_networks = set()
+    
+    # 为每个选中的容器生成服务配置
+    for container in selected_containers:
+        container_name = container['Name'].lstrip('/')
+        service_name = re.sub(r'[^a-zA-Z0-9_]', '_', container_name)
+        
+        # 生成服务配置
+        service_config = convert_container_to_service(container)
+        compose['services'][service_name] = service_config
+        
+        # 收集使用的网络
+        for network_name in container['NetworkSettings'].get('Networks', {}):
+            if network_name not in ['bridge', 'host', 'none']:
+                used_networks.add(network_name)
+    
+    # 添加网络配置
+    for network_name in used_networks:
+        if '_default' in network_name or network_name.startswith('bridge') or network_name.startswith('host'):
+            compose['networks'][network_name] = {'external': True}
+        else:
+            compose['networks'][network_name] = {}
+    
+    # 如果没有网络配置，删除networks部分
+    if not compose['networks']:
+        del compose['networks']
+    
+    print(f"成功生成compose配置，包含 {len(compose['services'])} 个服务")
+    return compose
 
 
 if __name__ == "__main__":

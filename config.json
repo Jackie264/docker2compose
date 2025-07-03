@@ -1,0 +1,11 @@
+{
+  "// 配置说明": "以下是D2C的配置选项",
+  "// NAS": "指定NAS系统类型: debian(默认,生成完整配置) 或 zos(极空间系统,不生成command和entrypoint)",
+  "NAS": "debian",
+  "// CRON": "定时执行配置,使用标准cron表达式,如'0 2 * * *'(每天凌晨2点),'once'(执行一次后退出)。支持6位格式(秒 分 时 日 月 周)",
+  "CRON": "5,10,15,20,25,30,35,50 * * * *",
+  "// NETWORK": "控制bridge网络配置的显示方式: true(显示) 或 false(隐藏)",
+  "NETWORK": "true",
+  "// TZ": "时区设置,如Asia/Shanghai、Europe/London等",
+  "TZ": "Asia/Shanghai"
+}
