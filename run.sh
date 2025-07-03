@@ -36,8 +36,17 @@ next_time = cron.get_next(datetime)
 print(next_time.strftime('%Y-%m-%d %H:%M:%S'))
 ")" '+%Y年%m月%d日 %H时%M分%S秒')
 
-# 创建cron任务
-echo "${CRON} /usr/local/bin/python3 /app/d2c.py >> /var/log/cron.log 2>&1" > /etc/cron.d/d2c-cron
+# 创建cron任务，添加必要的环境变量
+cat > /etc/cron.d/d2c-cron << EOF
+# 设置环境变量
+NAS=${NAS:-debian}
+NETWORK=${NETWORK:-true}
+TZ=${TZ:-Asia/Shanghai}
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# 定时任务
+${CRON} root cd /app && OUTPUT_DIR="/app/compose/\$(date +"%Y_%m_%d_%H_%M")" /usr/local/bin/python3 /app/d2c.py >> /var/log/cron.log 2>&1
+EOF
 chmod 0644 /etc/cron.d/d2c-cron
 
 # 创建日志文件

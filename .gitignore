@@ -1,0 +1,13 @@
+# 忽略git操作脚本
+git-ops.sh
+
+# 其他可能需要忽略的文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv
+env/
+venv/
+ENV/

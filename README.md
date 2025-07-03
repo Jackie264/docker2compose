@@ -151,7 +151,14 @@ pip install -r requirements.txt
 
 # 更新说明
 
-## 2025-05-04(v1.0.4)
+## 2025-07-03(v1.0.5)
+- 修复了volumes挂载权限处理逻辑，移除不必要的:rw后缀，只在只读模式时添加:ro后缀
+- 优化了healthcheck的CMD-SHELL格式处理，确保生成符合Docker Compose规范的配置
+- 改进了volumes处理逻辑，使生成的compose文件更简洁，符合Docker Compose最佳实践
+- 添加了healthcheck处理过程的调试日志输出，便于跟踪问题
+- 完善了代码注释和错误处理逻辑
+
+## 2025-06-04(v1.0.4)
 - 改进了macvlan网络配置处理，现在能够正确导出IPv4地址、IPv6地址和MAC地址
 - 修复了extra_hosts配置处理，现在能够正确从容器的HostConfig.ExtraHosts获取配置
 - 优化了volumes处理逻辑，支持中文路径，确保在生成的compose文件中保留原始路径
@@ -160,7 +167,7 @@ pip install -r requirements.txt
 - 添加了更多错误处理和日志输出，便于调试和跟踪处理过程
 
 
-## 2025-05-04(v1.0.3)
+## 2025-05-05(v1.0.3)
 
 - 添加了command、entrypoint的生成，若环境变量配置NAS配置为ZOS，则不生成
 - 添加了环境变量：NAS、CRON、TZ、NETWORK

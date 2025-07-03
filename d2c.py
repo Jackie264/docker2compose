@@ -81,9 +81,9 @@ def get_networks():
         if output:
             network_info = json.loads(output)
             network_name = network_info[0]['Name']
-            # 排除默认的bridge和host网络
-            if network_name not in ['bridge', 'host', 'none']:
-                networks[network_name] = network_info[0]
+            # 包含所有网络信息，包括bridge和host，以便后续处理
+            networks[network_name] = network_info[0]
+            print(f"获取网络信息: {network_name}, 驱动: {network_info[0].get('Driver', 'unknown')}")
     
     return networks
 
@@ -105,14 +105,9 @@ def group_containers_by_network(containers, networks):
         # 检查网络模式
         network_mode = container.get('HostConfig', {}).get('NetworkMode', '')
         
-        # 检查是否使用特殊网络（bridge、host或macvlan）
-        is_special_network = (
-            network_mode in ['bridge', 'host'] or
-            any(
-                networks.get(net_name, {}).get('Driver', '') == 'macvlan'
-                for net_name in container.get('NetworkSettings', {}).get('Networks', {})
-            )
-        )
+        # 检查是否使用特殊网络（bridge、host）
+        # macvlan网络不再作为特殊网络处理，允许正常分组
+        is_special_network = network_mode in ['bridge', 'host']
         
         if is_special_network:
             special_network_containers.append(container_id)
@@ -294,18 +289,22 @@ def convert_container_to_service(container):
     if container['Mounts']:
         for mount in container['Mounts']:
             mode = mount.get('RW', True)
-            if mode:
-                mode_suffix = 'rw'
-            else:
-                mode_suffix = 'ro'
             if mount['Type'] == 'volume':
                 source = mount['Name']
                 target = mount['Destination']
-                volumes.append(f"{source}:{target}:{mode_suffix}")
+                # 对于volume类型，只在非默认模式时添加后缀
+                if not mode:  # 只读模式
+                    volumes.append(f"{source}:{target}:ro")
+                else:  # 读写模式（默认），不添加后缀
+                    volumes.append(f"{source}:{target}")
             elif mount['Type'] == 'bind':
                 source = mount['Source']
                 target = mount['Destination']
-                volumes.append(f"{source}:{target}:{mode_suffix}")
+                # 对于bind类型，只在非默认模式时添加后缀
+                if not mode:  # 只读模式
+                    volumes.append(f"{source}:{target}:ro")
+                else:  # 读写模式（默认），不添加后缀
+                    volumes.append(f"{source}:{target}")
     if volumes:
         service['volumes'] = volumes
     
@@ -323,8 +322,8 @@ def convert_container_to_service(container):
     elif network_mode != 'default':
         # 处理自定义网络模式
         if not service.get('networks'):
-            service['networks'] = {}
-        service['networks'][network_mode] = {'external': True}
+            service['networks'] = []
+        service['networks'].append(network_mode)
     else:
         # 处理网络配置
         networks_config = container['NetworkSettings'].get('Networks', {})
@@ -337,6 +336,10 @@ def convert_container_to_service(container):
                 network_settings = {}
                 
                 print(f"处理网络 {network_name} 的配置: {json.dumps(network_config, indent=2)}")
+                
+                # 检查网络驱动类型
+                network_driver = networks.get(network_name, {}).get('Driver', '')
+                print(f"网络 {network_name} 的驱动类型: {network_driver}")
                 
                 # 处理 IPv4 配置
                 ipam_config = network_config.get('IPAMConfig')
@@ -355,17 +358,44 @@ def convert_container_to_service(container):
                     network_settings['ipv6_address'] = network_config['GlobalIPv6Address']
                     print(f"从 GlobalIPv6Address 获取到 IPv6 地址: {network_config['GlobalIPv6Address']}")
                 
-                # 处理 MAC 地址
+                # 处理 MAC 地址 - 改进获取逻辑
+                mac_address = None
                 if network_config.get('MacAddress') and network_config['MacAddress'] != "":
-                    network_settings['mac_address'] = network_config['MacAddress']
-                    print(f"获取到 MAC 地址: {network_config['MacAddress']}")
+                    mac_address = network_config['MacAddress']
+                    print(f"从 MacAddress 获取到 MAC 地址: {mac_address}")
+                elif network_config.get('EndpointID'):
+                    # 尝试从网络详细信息中获取MAC地址
+                    endpoint_id = network_config['EndpointID']
+                    print(f"尝试从 EndpointID {endpoint_id} 获取 MAC 地址")
+                    # 这里可以添加更多的MAC地址获取逻辑
+                
+                if mac_address:
+                    network_settings['mac_address'] = mac_address
+                    print(f"设置 MAC 地址: {mac_address}")
                 
                 # 如果有网络设置，添加到服务配置中
                 if network_settings:
+                    # 有特殊配置时使用字典格式
+                    if not service.get('networks'):
+                        service['networks'] = {}
+                    elif isinstance(service['networks'], list):
+                        # 如果之前是列表格式，转换为字典格式
+                        old_networks = service['networks']
+                        service['networks'] = {}
+                        for net in old_networks:
+                            service['networks'][net] = None
                     service['networks'][network_name] = network_settings
                     print(f"为服务添加网络配置: {network_name} = {network_settings}")
                 else:
-                    service['networks'][network_name] = {'external': True}
+                    # 对于没有特殊配置的网络，使用列表格式
+                    if not service.get('networks'):
+                        service['networks'] = []
+                    if isinstance(service['networks'], dict):
+                        # 如果已经是字典格式，保持字典格式
+                        service['networks'][network_name] = None
+                    else:
+                        # 如果是列表格式，添加到列表中
+                        service['networks'].append(network_name)
                     print(f"为服务添加外部网络: {network_name}")
     
     # 添加 extra_hosts - 修复为获取容器的 ExtraHosts 配置
@@ -471,24 +501,81 @@ def convert_container_to_service(container):
     
     # 获取容器的command和entrypoint配置，ZOS系统不执行
     if nas_env != 'zos':
-        # 获取容器的command配置
-        if container['Config'].get('Cmd'):
-            service['command'] = container['Config']['Cmd']
+        # 获取容器的entrypoint和command配置
+        entrypoint_config = container['Config'].get('Entrypoint')
+        cmd_config = container['Config'].get('Cmd')
         
-        # 获取容器的entrypoint配置
-        if container['Config'].get('Entrypoint'):
-            service['entrypoint'] = container['Config']['Entrypoint']
+        # 处理entrypoint配置
+        if entrypoint_config:
+            if len(entrypoint_config) == 1:
+                service['entrypoint'] = entrypoint_config[0]
+            else:
+                service['entrypoint'] = entrypoint_config
+        
+        # 处理command配置，但要避免与entrypoint重复
+        if cmd_config:
+            # 检查command是否与entrypoint相同，如果相同则不设置command
+            if entrypoint_config and cmd_config == entrypoint_config:
+                # 如果command和entrypoint相同，只保留entrypoint
+                pass
+            else:
+                # 如果只有一个元素，使用字符串格式；多个元素使用数组格式
+                if len(cmd_config) == 1:
+                    service['command'] = cmd_config[0]
+                else:
+                    service['command'] = cmd_config
     
     # 获取容器的健康检查配置
     if container['Config'].get('Healthcheck'):
-        healthcheck = {
-            'test': container['Config']['Healthcheck'].get('Test', []),
-            'interval': container['Config']['Healthcheck'].get('Interval'),
-            'timeout': container['Config']['Healthcheck'].get('Timeout'),
-            'retries': container['Config']['Healthcheck'].get('Retries')
-        }
-        # 移除None值
-        healthcheck = {k: v for k, v in healthcheck.items() if v is not None}
+        healthcheck = {}
+        
+        # 处理test字段
+        test = container['Config']['Healthcheck'].get('Test', [])
+        if test:
+            # 对于CMD-SHELL类型，需要特殊处理
+            if len(test) >= 2 and test[0] == 'CMD-SHELL':
+                # 将CMD-SHELL和后续命令合并为两个数组元素：CMD-SHELL和完整命令
+                # 修复：确保正确合并为两个元素的数组
+                full_command = ' '.join(test[1:])
+                healthcheck['test'] = ['CMD-SHELL', full_command]
+                print(f"处理healthcheck CMD-SHELL: {healthcheck['test']}")
+            elif len(test) == 1 and not test[0].startswith('CMD'):
+                # 简单命令使用字符串格式
+                healthcheck['test'] = test[0]
+            elif len(test) >= 2 and test[0] == 'CMD':
+                # 对于CMD类型，保持原数组格式
+                healthcheck['test'] = test
+            else:
+                # 其他情况保持原数组格式
+                healthcheck['test'] = test
+        
+        # 处理时间间隔字段，将纳秒转换为秒
+        def convert_nanoseconds_to_duration(ns):
+            if ns is None:
+                return None
+            # Docker的时间间隔通常以纳秒为单位
+            seconds = ns // 1000000000
+            if seconds < 60:
+                return f"{seconds}s"
+            elif seconds < 3600:
+                minutes = seconds // 60
+                return f"{minutes}m"
+            else:
+                hours = seconds // 3600
+                return f"{hours}h"
+        
+        interval = container['Config']['Healthcheck'].get('Interval')
+        if interval:
+            healthcheck['interval'] = convert_nanoseconds_to_duration(interval)
+            
+        timeout = container['Config']['Healthcheck'].get('Timeout')
+        if timeout:
+            healthcheck['timeout'] = convert_nanoseconds_to_duration(timeout)
+            
+        retries = container['Config']['Healthcheck'].get('Retries')
+        if retries:
+            healthcheck['retries'] = retries
+        
         if healthcheck:
             service['healthcheck'] = healthcheck
     
@@ -504,7 +591,7 @@ def generate_compose_file(containers_group, all_containers, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     
     compose = {
-        'version': '3',
+        'version': '3.8',
         'services': {},
     }
     
@@ -518,7 +605,17 @@ def generate_compose_file(containers_group, all_containers, output_dir):
                         networks.add(network_name)
     
     if networks:
-        compose['networks'] = {network: {'external': True} for network in networks}
+        # 检查网络是否为Docker默认创建的网络（通常包含项目名称）
+        # 只有明确的外部网络才设置为external: true
+        compose['networks'] = {}
+        for network in networks:
+            # 如果网络名包含下划线且看起来像compose创建的网络，不设置为external
+            # 否则设置为external: true
+            if '_default' in network or network.startswith('bridge') or network.startswith('host'):
+                compose['networks'][network] = {'external': True}
+            else:
+                # 对于自定义网络，不设置external，让compose自动创建
+                compose['networks'][network] = {}
     
     # 添加服务配置
     for container_id in containers_group:
