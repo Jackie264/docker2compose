@@ -45,10 +45,72 @@
   - 特权模式
   - 硬件设备挂载
   - cap_add 能力
-  - ~~性能限制~~(极空间暂不支持，暂时移除)
-  - command和entrypoint(在ZOS系统中不生成)
+  - command和entrypoint(在ZOS模式下不生成)
   - 健康检测
   - 其他配置等等
+
+## 🌐全新的 Web UI 访问
+
+部署完成后，可通过浏览器访问Web界面：
+- 本地访问：`http://localhost:5000`
+- 局域网访问：`http://你的IP地址:5000`
+
+### Web UI功能特点
+
+- 📊 **容器管理**：实时查看所有Docker容器状态，按网络关系自动分组
+- 📄 **Compose预览**：直接在界面中查看生成的docker-compose.yaml文件内容
+- ⏰ **调度器监控**：实时监控定时任务状态，查看执行日志
+- 🚀 **立即执行**：一键执行compose文件生成任务
+- 🗂️ **文件管理**：浏览和管理生成的compose文件目录
+- 📝 **日志查看**：查看详细的执行日志，支持清空日志功能
+
+🔻项目首页
+![QQ_1751597270453](https://github.com/user-attachments/assets/d1b40dd7-408b-4f87-9756-a35ffe74a5da)
+
+🔻可视化配置编辑
+![QQ_1751597299766](https://github.com/user-attachments/assets/beff1d61-e495-491f-a1db-62cf59d5ce8d)
+
+🔻定时任务管理
+![QQ_1751597315617](https://github.com/user-attachments/assets/6eec9ece-e670-4ddb-b28e-bf301d22e8e7)
+
+### 配置文件说明 (/app/config.json)
+
+- `NAS`: 指定NAS系统类型
+  - `debian`: 默认值，生成完整配置
+  - `zos`: 极空间系统，不生成command和entrypoint配置
+
+- `CRON`: 定时执行配置，支持5位\6位Cron规则，示例：`0 2 * * *`（每天凌晨2点执行）
+  - 默认值：`0 */12 * * *`（每天0点起，每天12小时执行一次）
+  - `once`: 执行一次后退出
+
+- `NETWORK`: 控制bridge网络配置的显示方式
+  - `true`: 默认值，在生成的compose.yaml中显式添加 `network_mode: bridge` 配置
+  - `false`: 隐藏bridge网络配置，不在compose.yaml中显示 `network_mode: bridge`（因为bridge是Docker默认网络模式）
+
+- `TZ`: 时区，用于定时执行
+  - 默认值：`Asia/Shanghai`
+
+### 输出目录说明
+- `/app/compose`: 脚本输出目录，默认值为`/app/compose`
+- `/app/compose/YYYY_MM_DD_HH_MM`: 定时任务输出目录，格式为`YYYY_MM_DD_HH_MM`，例如`2023_05_04_15_00`
+
+### 输出说明
+
+- 对于单个独立的容器，生成的文件名格式为：`{容器名}.yaml`
+- 对于有网络关系的容器组，生成的文件名格式为：`{第一个容器名前缀}-group.yaml`
+- 所有生成的文件都会保存在`compose/时间戳`目录下
+
+### 注意事项
+
+- 该工具需要Docker命令行权限才能正常工作
+- 生成的docker-compose.yaml文件可能需要手动调整以满足特定需求
+- 通过Docker运行时，会将宿主机的Docker套接字挂载到容器中，以便获取容器信息
+- 工具支持定时执行，默认`once`（只执行一次），可通过CRON环境变量自定义执行时间
+- 关于Macvlan网络，DHCP的理论上会展示`macvlan:{}`，
+- 对于使用默认bridge网络但没有显式link的容器，它们可能会被分到不同的组中
+- 工具会将自定义网络标记为`external: true`，因为它假设这些网络已经存在
+
+-------------------------------------
 
 # 使用方法
 
@@ -82,41 +144,6 @@ services:
       - /{path}:/app/compose
 ```
 
-### 🌐 Web UI访问
-
-部署完成后，可通过浏览器访问Web界面：
-- 本地访问：`http://localhost:5000`
-- 局域网访问：`http://你的IP地址:5000`
-
-**Web UI功能特点：**
-- 📊 **容器管理**：实时查看所有Docker容器状态，按网络关系自动分组
-- 📄 **Compose预览**：直接在界面中查看生成的docker-compose.yaml文件内容
-- ⏰ **调度器监控**：实时监控定时任务状态，查看执行日志
-- 🚀 **立即执行**：一键执行compose文件生成任务
-- 🗂️ **文件管理**：浏览和管理生成的compose文件目录
-- 📝 **日志查看**：查看详细的执行日志，支持清空日志功能
-
-### 配置文件说明 (/app/config.json)
-
-- `NAS`: 指定NAS系统类型
-  - `debian`: 默认值，生成完整配置
-  - `zos`: 极空间系统，不生成command和entrypoint配置
-
-- `CRON`: 定时执行配置，支持5位\6位Cron规则，示例：`0 2 * * *`（每天凌晨2点执行）
-  - 默认值：`0 */12 * * *`（每天0点起，每天12小时执行一次）
-  - `once`: 执行一次后退出
-
-- `NETWORK`: 控制bridge网络配置的显示方式
-  - `true`: 默认值，在生成的compose.yaml中显式添加 `network_mode: bridge` 配置
-  - `false`: 隐藏bridge网络配置，不在compose.yaml中显示 `network_mode: bridge`（因为bridge是Docker默认网络模式）
-
-- `TZ`: 时区，用于定时执行
-  - 默认值：`Asia/Shanghai`
-
-### 输出目录说明
-- `/app/compose`: 脚本输出目录，默认值为`/app/compose`
-- `YYYY_MM_DD_HH_MM`: 脚本执行时间，格式为`YYYY_MM_DD_HH_MM`，例如`2023_05_04_15_00`
-
 ## 2、直接运行（需要Python环境）
 
 如果您的系统已安装Python环境，也可以直接运行：
@@ -142,20 +169,7 @@ pip install -r requirements.txt
 
 5. 脚本会在当前目录下创建一个`compose`文件夹，并在其中生成docker-compose.yaml文件
 
-## 输出说明
-
-- 对于单个独立的容器，生成的文件名格式为：`{容器名}.yaml`
-- 对于有网络关系的容器组，生成的文件名格式为：`{第一个容器名前缀}-group.yaml`
-- 所有生成的文件都会保存在`compose/时间戳`目录下
-
-## 注意事项
-
-- 该工具需要Docker命令行权限才能正常工作
-- 生成的docker-compose.yaml文件可能需要手动调整以满足特定需求
-- 对于使用默认bridge网络但没有显式link的容器，它们可能会被分到不同的组中
-- 工具会将自定义网络标记为`external: true`，因为它假设这些网络已经存在
-- 通过Docker运行时，会将宿主机的Docker套接字挂载到容器中，以便获取容器信息
-- 工具支持定时执行，默认每12小时执行一次，可通过CRON环境变量自定义执行时间
+-------------------------------------
 
 # 更新说明
 
