@@ -178,6 +178,13 @@ pip install -r requirements.txt
 
 # 更新说明
 
+## 2025-07-04(v1.1.1)
+  - 改进了Host网络和Macvlan网络的compose文件命名规则
+    - Host网络容器组现在生成`host-group.yaml`文件名
+    - Macvlan网络容器组现在生成`{网络名}-group.yaml`文件名
+  - 在编辑器保存compose文件后，现在会自动刷新文件列表
+  - 修复dockerfile中路径映射和flask确实的问题
+
 ## 2025-07-03(v1.1.0)
 - 🎉 **新增Web UI界面**：
   - 采用全新得现代化的图形界面设计，原CLI模式保留不变。

@@ -643,14 +643,18 @@ def convert_container_to_service(container):
     return service
 
 
-def generate_compose_file(containers_group, all_containers, output_dir=None):
+def generate_compose_file(containers_group, all_containers, networks=None, output_dir=None):
     """为一组容器生成docker-compose.yaml文件
     
     Args:
         containers_group: 容器ID列表
         all_containers: 所有容器信息
+        networks: 网络信息字典，用于判断网络类型
         output_dir: 输出目录，如果为None则从环境变量获取
     """
+    # 如果没有传入networks参数，获取网络信息
+    if networks is None:
+        networks = get_networks()
     # 使用环境变量中的输出目录，如果未指定则使用默认值
     if output_dir is None:
         output_dir = os.getenv('OUTPUT_DIR', 'compose')
@@ -700,12 +704,45 @@ def generate_compose_file(containers_group, all_containers, output_dir=None):
                 filename = f"{container['Name'].lstrip('/')}.yaml"
                 break
     else:
-        # 使用第一个容器的名称作为文件名前缀
-        for container in all_containers:
-            if container['Id'] == containers_group[0]:
-                prefix = container['Name'].lstrip('/').split('_')[0]
-                filename = f"{prefix}-group.yaml"
+        # 检查容器组的网络类型，生成相应的组名
+        group_network_type = None
+        macvlan_network_name = None
+        
+        # 分析容器组中的网络类型
+        for container_id in containers_group:
+            for container in all_containers:
+                if container['Id'] == container_id:
+                    network_mode = container.get('HostConfig', {}).get('NetworkMode', '')
+                    
+                    # 检查是否为host网络
+                    if network_mode == 'host':
+                        group_network_type = 'host'
+                        break
+                    
+                    # 检查是否为macvlan网络
+                    for network_name, network_config in container.get('NetworkSettings', {}).get('Networks', {}).items():
+                        if network_name in networks and networks[network_name].get('Driver') == 'macvlan':
+                            group_network_type = 'macvlan'
+                            macvlan_network_name = network_name
+                            break
+                    
+                    if group_network_type:
+                        break
+            if group_network_type:
                 break
+        
+        # 根据网络类型生成文件名
+        if group_network_type == 'host':
+            filename = "host-group.yaml"
+        elif group_network_type == 'macvlan' and macvlan_network_name:
+            filename = f"{macvlan_network_name}-group.yaml"
+        else:
+            # 使用第一个容器的名称作为文件名前缀（原有逻辑）
+            for container in all_containers:
+                if container['Id'] == containers_group[0]:
+                    prefix = container['Name'].lstrip('/').split('_')[0]
+                    filename = f"{prefix}-group.yaml"
+                    break
     
     # 确保输出目录存在
     os.makedirs(output_dir, exist_ok=True)
@@ -760,7 +797,7 @@ def main():
     generated_files = []
     for i, group in enumerate(container_groups):
         print(f"处理第 {i+1} 组，包含 {len(group)} 个容器")
-        file_path = generate_compose_file(group, containers, output_dir)
+        file_path = generate_compose_file(group, containers, networks, output_dir)
         generated_files.append(file_path)
     
     print("\n生成完成！生成的文件列表:")

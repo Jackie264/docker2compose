@@ -29,14 +29,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . /app/
+COPY backend/ /app/
+RUN chmod +x /app/*.sh /app/*.py
 
-RUN chmod +x /app/d2c.py /app/run.sh
-
-VOLUME ["/app"]
 EXPOSE 5000
 
 CMD ["python3", "/app/web_ui.py"]

@@ -488,6 +488,7 @@ class D2CWebUI {
 
             if (result.success) {
                 this.showNotification(`文件保存成功: ${result.path}`, 'success');
+                this.loadFileList();
             } else {
                 throw new Error(result.error || '保存失败');
             }
