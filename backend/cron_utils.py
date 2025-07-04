@@ -28,6 +28,43 @@ class CronUtils:
         if self.debug:
             print(f"[DEBUG] {message}", file=sys.stderr)
     
+    def normalize_cron_expression(self, cron_expr):
+        """
+        标准化CRON表达式，处理全角字符和特殊字符
+        
+        Args:
+            cron_expr (str): 原始CRON表达式
+            
+        Returns:
+            str: 标准化后的CRON表达式
+        """
+        if not cron_expr:
+            return cron_expr
+        
+        # 全角字符到半角字符的映射
+        char_map = {
+            '　': ' ',  # 全角空格转半角空格
+            '？': '?',  # 全角问号转半角问号
+            '＊': '*',  # 全角星号转半角星号
+            '，': ',',  # 全角逗号转半角逗号
+            '－': '-',  # 全角减号转半角减号
+            '／': '/',  # 全角斜杠转半角斜杠
+            '０': '0', '１': '1', '２': '2', '３': '3', '４': '4',
+            '５': '5', '６': '6', '７': '7', '８': '8', '９': '9'
+        }
+        
+        # 执行字符替换
+        normalized = cron_expr
+        for full_char, half_char in char_map.items():
+            normalized = normalized.replace(full_char, half_char)
+        
+        # 处理多个连续空格，替换为单个空格
+        import re
+        normalized = re.sub(r'\s+', ' ', normalized)
+        
+        self.log_debug(f"标准化CRON表达式: '{cron_expr}' -> '{normalized}'")
+        return normalized
+    
     def validate_cron_expression(self, cron_expr):
         """
         验证CRON表达式格式
@@ -42,8 +79,8 @@ class CronUtils:
         if not cron_expr or not isinstance(cron_expr, str):
             return False, 0, "CRON表达式不能为空"
         
-        # 去除首尾空格
-        cron_expr = cron_expr.strip()
+        # 去除首尾空格并标准化字符
+        cron_expr = self.normalize_cron_expression(cron_expr.strip())
         
         # 分割字段
         fields = cron_expr.split()
@@ -81,7 +118,9 @@ class CronUtils:
         if not cron_expr or cron_expr.strip() == 'once':
             return False
         
-        fields = cron_expr.strip().split()
+        # 标准化表达式
+        normalized = self.normalize_cron_expression(cron_expr.strip())
+        fields = normalized.split()
         return len(fields) == 6
     
     def convert_6_to_5_field(self, cron_expr):
@@ -98,7 +137,9 @@ class CronUtils:
         if not self.is_6_field_cron(cron_expr):
             return cron_expr, "无需转换"
         
-        fields = cron_expr.strip().split()
+        # 标准化表达式
+        normalized = self.normalize_cron_expression(cron_expr.strip())
+        fields = normalized.split()
         seconds, minutes, hours, days, months, weekdays = fields
         
         self.log_debug(f"转换6位CRON: {cron_expr}")
@@ -145,7 +186,9 @@ class CronUtils:
             base_time = datetime.now()
         
         try:
-            fields = cron_expr.strip().split()
+            # 标准化表达式
+            normalized = self.normalize_cron_expression(cron_expr.strip())
+            fields = normalized.split()
             
             # 检查是否为6位格式
             if len(fields) == 6:
@@ -160,7 +203,7 @@ class CronUtils:
                     # 某些版本的croniter可能不完全支持6位格式
                     # 我们先尝试直接使用，如果失败则使用5位部分
                     try:
-                        cron = croniter(cron_expr, base_time)
+                        cron = croniter(normalized, base_time)
                         next_time = cron.get_next(datetime)
                         self.log_debug("成功使用6位CRON格式计算")
                     except:
@@ -176,7 +219,7 @@ class CronUtils:
             else:
                 self.log_debug("使用5位CRON格式计算")
                 # 标准5位格式
-                cron = croniter(cron_expr, base_time)
+                cron = croniter(normalized, base_time)
                 next_time = cron.get_next(datetime)
             
             formatted_time = next_time.strftime('%Y-%m-%d %H:%M:%S')

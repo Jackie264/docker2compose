@@ -10,7 +10,7 @@ from collections import defaultdict
 
 def load_config():
     """加载配置，优先从config.json读取，如果没有则从环境变量读取"""
-    config_file = '/app/config.json'
+    config_file = '/app/config/config.json'
     
     # 默认配置
     default_config = {
@@ -45,7 +45,13 @@ def load_config():
 
 def ensure_config_file():
     """确保配置文件存在，如果不存在则创建默认配置文件"""
-    config_file = '/app/config.json'
+    config_file = '/app/config/config.json'
+    
+    # 确保config目录存在
+    config_dir = os.path.dirname(config_file)
+    if not os.path.exists(config_dir):
+        os.makedirs(config_dir, exist_ok=True)
+        print(f"已创建配置目录: {config_dir}")
     
     if not os.path.exists(config_file):
         default_config = {
@@ -668,19 +674,19 @@ def generate_compose_file(containers_group, all_containers, networks=None, outpu
     }
     
     # 添加网络配置
-    networks = set()
+    used_networks = set()
     for container_id in containers_group:
         for container in all_containers:
             if container['Id'] == container_id:
                 for network_name in container['NetworkSettings'].get('Networks', {}):
                     if network_name not in ['bridge', 'host', 'none']:
-                        networks.add(network_name)
+                        used_networks.add(network_name)
     
-    if networks:
+    if used_networks:
         # 检查网络是否为Docker默认创建的网络（通常包含项目名称）
         # 只有明确的外部网络才设置为external: true
         compose['networks'] = {}
-        for network in networks:
+        for network in used_networks:
             # 如果网络名包含下划线且看起来像compose创建的网络，不设置为external
             # 否则设置为external: true
             if '_default' in network or network.startswith('bridge') or network.startswith('host'):
@@ -769,42 +775,6 @@ def generate_compose_file(containers_group, all_containers, networks=None, outpu
     return file_path
 
 
-def main():
-    # 确保配置文件存在
-    ensure_config_file()
-    
-    print("开始读取Docker容器信息...")
-    containers = get_containers()
-    if not containers:
-        print("未找到Docker容器")
-        return
-    
-    print(f"找到 {len(containers)} 个Docker容器")
-    
-    print("读取网络信息...")
-    networks = get_networks()
-    print(f"找到 {len(networks)} 个自定义网络")
-    
-    print("根据网络关系对容器进行分组...")
-    container_groups = group_containers_by_network(containers, networks)
-    print(f"分组完成，共 {len(container_groups)} 个分组")
-    
-    # 获取输出目录，优先使用环境变量中的设置
-    output_dir = os.getenv('OUTPUT_DIR', 'compose')
-    print(f"输出目录: {output_dir}")
-    
-    print("生成docker-compose文件...")
-    generated_files = []
-    for i, group in enumerate(container_groups):
-        print(f"处理第 {i+1} 组，包含 {len(group)} 个容器")
-        file_path = generate_compose_file(group, containers, networks, output_dir)
-        generated_files.append(file_path)
-    
-    print("\n生成完成！生成的文件列表:")
-    for file_path in generated_files:
-        print(f"- {file_path}")
-
-
 def generate_compose_for_selected_containers(container_ids):
     """为指定的容器ID列表生成compose配置
     
@@ -874,6 +844,42 @@ def generate_compose_for_selected_containers(container_ids):
     
     print(f"成功生成compose配置，包含 {len(compose['services'])} 个服务")
     return compose
+
+
+def main():
+    # 确保配置文件存在
+    ensure_config_file()
+    
+    print("开始读取Docker容器信息...")
+    containers = get_containers()
+    if not containers:
+        print("未找到Docker容器")
+        return
+    
+    print(f"找到 {len(containers)} 个Docker容器")
+    
+    print("读取网络信息...")
+    networks = get_networks()
+    print(f"找到 {len(networks)} 个自定义网络")
+    
+    print("根据网络关系对容器进行分组...")
+    container_groups = group_containers_by_network(containers, networks)
+    print(f"分组完成，共 {len(container_groups)} 个分组")
+    
+    # 获取输出目录，优先使用环境变量中的设置
+    output_dir = os.getenv('OUTPUT_DIR', 'compose')
+    print(f"输出目录: {output_dir}")
+    
+    print("生成docker-compose文件...")
+    generated_files = []
+    for i, group in enumerate(container_groups):
+        print(f"处理第 {i+1} 组，包含 {len(group)} 个容器")
+        file_path = generate_compose_file(group, containers, networks, output_dir)
+        generated_files.append(file_path)
+    
+    print("\n生成完成！生成的文件列表:")
+    for file_path in generated_files:
+        print(f"- {file_path}")
 
 
 if __name__ == "__main__":

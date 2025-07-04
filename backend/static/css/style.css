@@ -963,8 +963,16 @@ body {
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 2000;
+    z-index: 3000;
     backdrop-filter: blur(4px);
+}
+
+.error-modal {
+    z-index: 4000 !important;
+}
+
+.error-modal .modal-backdrop {
+    z-index: 3900 !important;
 }
 
 .loading-overlay.show {
@@ -1094,6 +1102,28 @@ body {
     left: 100%;
 }
 
+/* 文件切换平滑过渡 */
+.yaml-editor {
+    transition: opacity 0.2s ease-in-out;
+}
+
+.yaml-editor:disabled {
+    cursor: wait;
+}
+
+.file-item {
+    transition: background-color 0.2s ease;
+}
+
+.file-item.selected {
+    background-color: rgba(52, 152, 219, 0.1);
+    border-left: 3px solid #3498db;
+}
+
+.file-item:hover {
+    background-color: rgba(52, 152, 219, 0.05);
+}
+
 /* 任务状态弹窗样式 - 修改为固定显示 */
 .scheduler-status-modal {
     position: fixed;
@@ -1107,7 +1137,7 @@ body {
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     display: none;
-    z-index: 1000;
+    z-index: 2000;
     border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 20px;
     overflow-y: auto;

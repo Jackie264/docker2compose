@@ -11,13 +11,35 @@ from flask import Flask, render_template, request, jsonify, send_from_directory
 from d2c import get_containers, get_networks, convert_container_to_service, group_containers_by_network, generate_compose_for_selected_containers, generate_compose_file
 import subprocess
 from datetime import datetime, timedelta
+import pytz
 import glob
+from d2c import ensure_config_file
+from cron_utils import CronUtils
 
 app = Flask(__name__)
 
 # 配置静态文件路径
 app.static_folder = 'static'
 app.template_folder = 'templates'
+
+def get_timezone_from_config():
+    """从配置文件获取时区设置"""
+    try:
+        config_file = '/app/config/config.json'
+        if os.path.exists(config_file):
+            with open(config_file, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            tz_str = config.get('TZ', 'Asia/Shanghai')
+            return pytz.timezone(tz_str)
+    except Exception as e:
+        print(f"获取时区配置失败: {e}，使用默认时区 Asia/Shanghai")
+    return pytz.timezone('Asia/Shanghai')
+
+def get_localized_timestamp():
+    """获取本地化的时间戳"""
+    tz = get_timezone_from_config()
+    now = datetime.now(tz)
+    return now.strftime("%Y_%m_%d_%H_%M")
 
 def ensure_compose_files_exist():
     """确保compose文件已生成，如果没有则自动生成一次"""
@@ -249,7 +271,7 @@ def api_save_compose():
             filename += '.yaml'
         
         # 创建输出目录
-        timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M")
+        timestamp = get_localized_timestamp()
         output_dir = f"/app/compose/{timestamp}"
         os.makedirs(output_dir, exist_ok=True)
         
@@ -439,7 +461,7 @@ def api_generate_all_compose():
             }), 500
         
         # 保存文件到磁盘
-        timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M")
+        timestamp = get_localized_timestamp()
         output_dir = f"/app/compose/{timestamp}"
         os.makedirs(output_dir, exist_ok=True)
         
@@ -478,7 +500,7 @@ def api_generate_all_compose():
 def api_get_settings():
     """获取配置设置"""
     try:
-        config_file = '/app/config.json'
+        config_file = '/app/config/config.json'
         
         # 默认设置
         default_settings = {
@@ -513,17 +535,39 @@ def api_save_settings():
         data = request.get_json()
         settings = data.get('settings', {})
         
-        config_file = '/app/config.json'
+        config_file = '/app/config/config.json'
         cron_expr = settings.get('CRON', 'once')
+        
+        # 初始化CRON工具
+        cron_utils = CronUtils(debug=True)
+        
+        # 标准化和验证CRON表达式
+        if cron_expr != 'once':
+            # 标准化CRON表达式（处理全角字符等）
+            normalized_cron = cron_utils.normalize_cron_expression(cron_expr)
+            
+            # 验证CRON表达式
+            is_valid, field_count, error_msg = cron_utils.validate_cron_expression(normalized_cron)
+            
+            if not is_valid:
+                return jsonify({
+                    'success': False,
+                    'error': f'无效的CRON表达式: {error_msg}',
+                    'original_cron': cron_expr,
+                    'normalized_cron': normalized_cron
+                }), 400
+            
+            # 使用标准化后的表达式
+            cron_expr = normalized_cron
+            settings['CRON'] = cron_expr
         
         # 检测6位CRON表达式
         is_6_field_cron = False
         scheduler_switch_message = ''
         
         if cron_expr != 'once':
-            fields = cron_expr.strip().split()
-            if len(fields) == 6:
-                is_6_field_cron = True
+            is_6_field_cron = cron_utils.is_6_field_cron(cron_expr)
+            if is_6_field_cron:
                 scheduler_switch_message = '检测到6位CRON格式，建议使用Python精确调度器以支持秒级调度。'
         
         # 创建包含注释的配置结构，保持与d2c.py中default_config一致
@@ -593,6 +637,25 @@ def api_save_settings():
 def api_start_scheduler():
     """启动定时任务"""
     try:
+        # 检查当前CRON配置
+        config_file = '/app/config/config.json'
+        current_cron = 'once'
+        if os.path.exists(config_file):
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                current_cron = config.get('CRON', 'once')
+            except Exception:
+                pass
+        
+        # 如果是once模式，提示用户修改CRON配置
+        if current_cron == 'once':
+            return jsonify({
+                'success': False,
+                'error': 'CRON配置为"once"模式，无法启动定时任务。请在设置中修改CRON表达式后再启动定时任务，或者点击"立即运行"执行一次性任务。',
+                'suggestion': 'modify_cron'
+            }), 400
+        
         # 启动调度器（scheduler_manager.sh会自动检测CRON格式并选择合适的调度器）
         result = subprocess.run(
             ['/app/scheduler_manager.sh', 'start'],
@@ -709,25 +772,7 @@ def api_run_once():
         from datetime import datetime
         import subprocess
         
-        # 从config.json读取时区配置
-        def load_tz_from_config():
-            config_file = '/app/config.json'
-            default_tz = 'Asia/Shanghai'
-            try:
-                if os.path.exists(config_file):
-                    with open(config_file, 'r', encoding='utf-8') as f:
-                        config = json.load(f)
-                    return config.get('TZ', default_tz)
-            except Exception:
-                pass
-            return default_tz
-        
-        # 使用config.json中的时区生成时间戳
-        tz = load_tz_from_config()
-        env = os.environ.copy()
-        env['TZ'] = tz
-        result = subprocess.run(['date', '+%Y_%m_%d_%H_%M'], env=env, capture_output=True, text=True)
-        timestamp = result.stdout.strip()
+        timestamp = get_localized_timestamp()
         output_dir = f'/app/compose/{timestamp}'
         
         # 创建输出目录
@@ -949,6 +994,10 @@ if __name__ == '__main__':
     os.makedirs('templates', exist_ok=True)
     os.makedirs('static/css', exist_ok=True)
     os.makedirs('static/js', exist_ok=True)
+    
+    # 确保配置文件存在
+
+    ensure_config_file()
     
     # 确保compose文件存在
     ensure_compose_files_exist()

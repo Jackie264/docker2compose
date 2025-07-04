@@ -556,6 +556,47 @@ class D2CWebUI {
     }
 
     /**
+     * 显示高优先级错误提示（用于任务启动失败等重要错误）
+     */
+    showHighPriorityError(message) {
+        // 创建高层级的错误弹框
+        const errorModal = document.createElement('div');
+        errorModal.className = 'modal fade error-modal';
+        errorModal.setAttribute('tabindex', '-1');
+        errorModal.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-exclamation-triangle me-2"></i>任务执行错误
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-danger mb-0">
+                            <i class="fas fa-times-circle me-2"></i>
+                            ${message}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(errorModal);
+        
+        const modal = new bootstrap.Modal(errorModal);
+        modal.show();
+        
+        // 弹框关闭后移除DOM元素
+        errorModal.addEventListener('hidden.bs.modal', () => {
+            document.body.removeChild(errorModal);
+        });
+    }
+
+    /**
      * 显示/隐藏加载遮罩
      */
     showLoading(show) {
@@ -914,7 +955,28 @@ class D2CWebUI {
      */
     async loadFile(filePath, targetElement = null) {
         try {
-            this.showLoading(true);
+            // 先更新UI状态，避免闪烁
+            document.querySelectorAll('.file-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            if (targetElement) {
+                targetElement.classList.add('selected');
+            }
+            
+            // 显示轻量级加载指示器，而不是全屏遮罩
+            const editor = document.getElementById('yamlEditor');
+            const originalContent = editor.value;
+            editor.style.transition = 'opacity 0.2s ease';
+            editor.style.opacity = '0.7';
+            editor.disabled = true;
+            
+            // 添加加载状态指示
+            const filenameInput = document.getElementById('filenameInput');
+            const originalFilename = filenameInput.value;
+            filenameInput.value = '加载中...';
+            filenameInput.disabled = true;
+            
             const response = await fetch('/api/file-content', {
                 method: 'POST',
                 headers: {
@@ -926,28 +988,33 @@ class D2CWebUI {
             const result = await response.json();
             
             if (result.success) {
-                this.showYamlEditor(result.data.content);
-                document.getElementById('filenameInput').value = result.data.filename;
-                
-                // 更新文件选择状态
-                document.querySelectorAll('.file-item').forEach(item => {
-                    item.classList.remove('selected');
-                });
-                
-                // 如果有目标元素，添加选中状态
-                if (targetElement) {
-                    targetElement.classList.add('selected');
-                }
-                
-                this.showNotification('文件加载成功', 'success');
+                // 平滑更新内容
+                setTimeout(() => {
+                    this.showYamlEditor(result.data.content);
+                    document.getElementById('filenameInput').value = result.data.filename;
+                    this.showNotification('文件加载成功', 'success');
+                }, 100);
             } else {
                 throw new Error(result.error || '加载文件失败');
             }
         } catch (error) {
             console.error('加载文件失败:', error);
             this.showNotification(`加载文件失败: ${error.message}`, 'error');
+            
+            // 恢复选择状态
+            if (targetElement) {
+                targetElement.classList.remove('selected');
+            }
         } finally {
-            this.showLoading(false);
+            // 恢复编辑器状态
+            const editor = document.getElementById('yamlEditor');
+            const filenameInput = document.getElementById('filenameInput');
+            
+            setTimeout(() => {
+                editor.style.opacity = '1';
+                editor.disabled = false;
+                filenameInput.disabled = false;
+            }, 150);
         }
     }
     
@@ -973,7 +1040,8 @@ class D2CWebUI {
             }
         } catch (error) {
             console.error('启动定时任务失败:', error);
-            this.showNotification(`启动失败: ${error.message}`, 'error');
+            // 为任务启动失败显示高层级错误提示
+            this.showHighPriorityError(`启动失败: ${error.message}`);
         } finally {
             this.showLoading(false);
         }
@@ -985,6 +1053,16 @@ class D2CWebUI {
     async stopScheduler() {
         try {
             this.showLoading(true);
+            
+            // 先检查任务状态
+            const statusResponse = await fetch('/api/scheduler/status');
+            const statusResult = await statusResponse.json();
+            
+            if (statusResult.success && !statusResult.status.running) {
+                this.showNotification('CRON任务未启动，无需停止', 'info');
+                return;
+            }
+            
             const response = await fetch('/api/scheduler/stop', {
                 method: 'POST',
                 headers: {
@@ -1031,7 +1109,8 @@ class D2CWebUI {
             }
         } catch (error) {
             console.error('执行任务失败:', error);
-            this.showNotification(`执行失败: ${error.message}`, 'error');
+            // 为任务启动失败显示高层级错误提示
+            this.showHighPriorityError(`执行失败: ${error.message}`);
         } finally {
             this.showLoading(false);
         }

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 配置文件路径
-CONFIG_FILE="/app/config.json"
+CONFIG_FILE="/app/config/config.json"
 
 # 从配置文件读取CRON设置的函数
 get_cron_from_config() {

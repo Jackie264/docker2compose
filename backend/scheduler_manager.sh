@@ -3,7 +3,7 @@
 
 SCHEDULER_PID_FILE="/tmp/d2c_scheduler.pid"
 SCHEDULER_SCRIPT="/app/scheduler.py"
-CONFIG_FILE="/app/config.json"
+CONFIG_FILE="/app/config/config.json"
 CRON_UTILS_SCRIPT="/app/cron_utils.py"
 
 # 颜色定义
@@ -117,7 +117,7 @@ TZ=\${TZ:-Asia/Shanghai}
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # 定时任务 (原始格式: ${cron_expr})
-${converted_cron} root cd /app && export TZ_CONFIG=\$(grep '"TZ"' /app/config.json | sed 's/.*"TZ"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo 'Asia/Shanghai') && export OUTPUT_DIR="/app/compose/\$(TZ=\$TZ_CONFIG date +\%Y_\%m_\%d_\%H_\%M)" && python3 /app/d2c.py >> /app/logs/cron.log 2>&1
+${converted_cron} root cd /app && export TZ_CONFIG=\$(grep '"TZ"' /app/config/config.json | sed 's/.*"TZ"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo 'Asia/Shanghai') && export OUTPUT_DIR="/app/compose/\$(TZ=\$TZ_CONFIG date +\%Y_\%m_\%d_\%H_\%M)" && python3 /app/d2c.py >> /app/logs/cron.log 2>&1
 EOF
     chmod 0644 /etc/cron.d/d2c-cron
     

@@ -5,17 +5,18 @@ D2C 精确调度器
 支持6位CRON格式的秒级精确调度
 """
 
-import json
-import time
-import subprocess
+import os
 import sys
+import time
+import json
 from datetime import datetime, timedelta
 from croniter import croniter
+import pytz
 import signal
 import os
 
 class D2CScheduler:
-    def __init__(self, config_file='/app/config.json'):
+    def __init__(self, config_file='/app/config/config.json'):
         self.config_file = config_file
         self.running = True
         self.setup_signal_handlers()
@@ -215,8 +216,8 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='D2C精确调度器')
-    parser.add_argument('--config', '-c', default='/app/config.json',
-                       help='配置文件路径 (默认: /app/config.json)')
+    parser.add_argument('--config', '-c', default='/app/config/config.json',
+                        help='配置文件路径 (默认: /app/config/config.json)')
     parser.add_argument('--test', '-t', action='store_true',
                        help='测试模式：显示下次执行时间后退出')
     

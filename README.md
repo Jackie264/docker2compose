@@ -124,18 +124,19 @@
 
 启用前确保系统安装了docker
 
-**🔻docker cli**
+**🔻docker cli启动**
 ```bash
 docker run -itd --name d2c \
   -v /var/run/docker.sock:/var/run/docker.sock:ro \
   -v /{path}/d2c/compose:/app/compose
   -v /{path}/d2c/logs:/app/logs
+  -v /{path}/d2c/config:/app/config
   -p 5000:5000 \
   crpi-xg6dfmt5h2etc7hg.cn-hangzhou.personal.cr.aliyuncs.com/cherry4nas/d2c:latest
   # 或使用github镜像源：ghcr.io/coracoo/d2c:latest
 ```
 
-**🔻docker-compose.yaml**
+**🔻docker compose启动**
 ```yaml
 services:
   d2c:
@@ -149,6 +150,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /{path}/d2c/compose:/app/compose
       - /{path}/d2c/logs:/app/logs
+      - /{path}/d2c/config:/app/config
 ```
 
 ## 2、直接运行（需要Python环境）
@@ -180,12 +182,17 @@ pip install -r requirements.txt
 
 # 更新说明
 
-## 2025-07-04(v1.1.1)
+## 2025-07-04(v1.1.2)
   - 改进了Host网络和Macvlan网络的compose文件命名规则
     - Host网络容器组现在生成`host-group.yaml`文件名
     - Macvlan网络容器组现在生成`{网络名}-group.yaml`文件名
-  - 在编辑器保存compose文件后，现在会自动刷新文件列表
-  - 修复dockerfile中路径映射和flask确实的问题
+  - 增加配置文件`config.json`的持久化读取，现在在`/app/config/config.json`目录下
+  - 优化compose编辑器，现在保存compose文件后会自动刷新文件列表
+  - 修复dockerfile中路径映射不生效、flask缺失的问题
+  - 优化切换compose文件的视觉效果
+  - 修复任务计划、生成全量Compose功能，时区配置不起作用的问题
+  - 优化任务计划中，`once`参数启动任务、任务停止（未启动）时的提示内容
+  - 修复任务计划中，缺失`gnupg`导致无法正确识别CRON和调度器状态的问题
 
 ## 2025-07-03(v1.1.0)
 - 🎉 **新增Web UI界面**：

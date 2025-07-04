@@ -1,5 +1,6 @@
 # 忽略git操作脚本
 git-ops.sh
+d2c.tar
 
 # 其他可能需要忽略的文件
 __pycache__/

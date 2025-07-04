@@ -17,6 +17,7 @@ RUN apt-get update \
         ca-certificates \
         gnupg \
         cron \
+        procps \
     && mkdir -p /etc/apt/keyrings \
     && curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg \
         | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
