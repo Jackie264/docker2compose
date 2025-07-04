@@ -127,7 +127,7 @@
 ```bash
 docker run -itd --name d2c \
   -v /var/run/docker.sock:/var/run/docker.sock:ro \
-  -v /{path}:/app/compose \
+  -v /{path}:/app
   -p 5000:5000 \
   crpi-xg6dfmt5h2etc7hg.cn-hangzhou.personal.cr.aliyuncs.com/cherry4nas/d2c:latest
   # 或使用github镜像源：ghcr.io/coracoo/d2c:latest
@@ -146,7 +146,7 @@ services:
       - "5000:5000"  # Web UI端口
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /{path}:/app/compose
+      - /{path}:/app
 ```
 
 ## 2、直接运行（需要Python环境）
