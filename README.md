@@ -98,6 +98,7 @@
 ### 输出目录说明
 - `/app/compose`: 脚本输出目录，默认值为`/app/compose`
 - `/app/compose/YYYY_MM_DD_HH_MM`: 定时任务输出目录，格式为`YYYY_MM_DD_HH_MM`，例如`2023_05_04_15_00`
+- `/app/logs`：定时任务日志
 
 ### 输出说明
 
@@ -127,7 +128,8 @@
 ```bash
 docker run -itd --name d2c \
   -v /var/run/docker.sock:/var/run/docker.sock:ro \
-  -v /{path}:/app
+  -v /{path}/d2c/compose:/app/compose
+  -v /{path}/d2c/logs:/app/logs
   -p 5000:5000 \
   crpi-xg6dfmt5h2etc7hg.cn-hangzhou.personal.cr.aliyuncs.com/cherry4nas/d2c:latest
   # 或使用github镜像源：ghcr.io/coracoo/d2c:latest
@@ -137,7 +139,6 @@ docker run -itd --name d2c \
 ```yaml
 services:
   d2c:
-    # 阿里云镜像源，国内选择
     image: crpi-xg6dfmt5h2etc7hg.cn-hangzhou.personal.cr.aliyuncs.com/cherry4nas/d2c:latest
     # github镜像源
     # image: ghcr.io/coracoo/d2c:latest
@@ -146,7 +147,8 @@ services:
       - "5000:5000"  # Web UI端口
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /{path}:/app
+      - /{path}/d2c/compose:/app/compose
+      - /{path}/d2c/logs:/app/logs
 ```
 
 ## 2、直接运行（需要Python环境）
@@ -196,7 +198,7 @@ pip install -r requirements.txt
   - 新增日志查看页面，用来查看任务执行日志。
 
 - 🔧 **修改代码逻辑**：
-  - 去除环境变量，所有参数通过`/app/config/json`来配置（参考前面得配置文件说明）。
+  - 去除环境变量，所有参数通过`/app/config.json`来配置（参考前面得配置文件说明）。
   - 新增系统CRON和Python调度器来执行CRON任务，彻底解决5、6位CRON的问题。
   - 初次登录会自动生成所有得容器yaml文件，保存在`/app/compose`目录下。
 
