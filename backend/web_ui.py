@@ -539,7 +539,8 @@ def api_save_settings():
         cron_expr = settings.get('CRON', 'once')
         
         # 初始化CRON工具
-        cron_utils = CronUtils(debug=True)
+        cron_utils = CronUtils()
+        cron_utils.set_debug(True)
         
         # 标准化和验证CRON表达式
         if cron_expr != 'once':
