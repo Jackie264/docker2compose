@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  watchtower:
+    container_name: watchtower
+    image: containrrr/watchtower:latest
+    restart: unless-stopped
+    environment:
+      HTTP_PROXY: http://192.168.0.132:7890
+      HTTPS_PROXY: http://192.168.0.132:7890
+      WATCHTOWER_CLEANUP: 'true'
+      WATCHTOWER_SCHEDULE: '@midnight'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    network_mode: host
+    labels:
+      com.centurylinklabs.watchtower: 'true'
+    entrypoint: /watchtower
+    healthcheck:
+      test:
+        - CMD
+        - /watchtower
+        - --health-check

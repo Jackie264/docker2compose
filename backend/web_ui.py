@@ -539,7 +539,8 @@ def api_save_settings():
         cron_expr = settings.get('CRON', 'once')
         
         # 初始化CRON工具
-        cron_utils = CronUtils(debug=True)
+        cron_utils = CronUtils()
+        cron_utils.set_debug(True)
         
         # 标准化和验证CRON表达式
         if cron_expr != 'once':
@@ -664,9 +665,32 @@ def api_start_scheduler():
             timeout=30
         )
         
+        output = result.stdout
+        
+        # 检查是否已经在运行中（返回码为1但输出包含运行状态信息）
+        if "已经在运行中" in output or "调度器已经在运行" in output or "正在运行" in output:
+            # 判断运行的调度器类型
+            if "Python调度器已经在运行中" in output:
+                scheduler_type = 'python'
+                message = 'Python精确调度器已在运行中，支持6位CRON格式。如需重启，请先停止当前调度器。'
+            elif "系统CRON调度器已经在运行中" in output:
+                scheduler_type = 'system_cron'
+                message = '系统CRON调度器已在运行中。如需切换到Python调度器以支持6位CRON格式，请先停止当前调度器。'
+            else:
+                scheduler_type = 'unknown'
+                message = '调度器已在运行中。如需重启，请先停止当前调度器。'
+            
+            return jsonify({
+                'success': False,
+                'error': message,
+                'status': 'already_running',
+                'scheduler_type': scheduler_type,
+                'suggestion': 'stop_first',
+                'output': output
+            }), 409  # 409 Conflict - 资源冲突
+        
         if result.returncode == 0:
             # 解析输出信息以确定启动的调度器类型
-            output = result.stdout
             if "Python精确调度器启动成功" in output:
                 return jsonify({
                     'success': True,
@@ -686,13 +710,6 @@ def api_start_scheduler():
                     'success': True,
                     'message': '一次性任务执行完成',
                     'scheduler_type': 'once',
-                    'output': output
-                })
-            elif "已经在运行中" in output or "调度器已经在运行" in output or "正在运行" in output:
-                return jsonify({
-                    'success': True,
-                    'message': '调度器已在运行中',
-                    'status': 'already_running',
                     'output': output
                 })
             else:

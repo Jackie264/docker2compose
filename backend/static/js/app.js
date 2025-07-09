@@ -186,6 +186,14 @@ class D2CWebUI {
                 this.toggleAutoRefresh();
             });
         }
+        
+        // 关于我按钮
+        const aboutMeBtn = document.getElementById('aboutMeBtn');
+        if (aboutMeBtn) {
+            aboutMeBtn.addEventListener('click', () => {
+                this.openAboutMe();
+            });
+        }
     }
 
     /**
@@ -1033,10 +1041,23 @@ class D2CWebUI {
             
             const result = await response.json();
             
-            if (result.success) {
+            if (response.ok && result.success) {
                 this.showNotification('定时任务启动成功', 'success');
             } else {
-                throw new Error(result.error || '启动失败');
+                // 处理不同类型的错误
+                if (response.status === 409) {
+                    // 调度器已运行的情况，显示简单提示
+                    let message = '调度器已在运行中';
+                    if (result.scheduler_type === 'python') {
+                        message = 'Python精确调度器已在运行中，请先停止当前调度器再启动新的。';
+                    } else if (result.scheduler_type === 'system_cron') {
+                        message = '系统CRON调度器已在运行中，请先停止当前调度器再启动新的。';
+                    }
+                    this.showNotification(message, 'warning');
+                    return; // 直接返回，不抛出异常
+                } else {
+                    throw new Error(result.error || '启动失败');
+                }
             }
         } catch (error) {
             console.error('启动定时任务失败:', error);
@@ -1131,6 +1152,14 @@ class D2CWebUI {
         // 加载初始状态
         this.refreshSchedulerStatus();
         this.refreshLogs();
+    }
+
+    /**
+     * 打开关于我模态框
+     */
+    openAboutMe() {
+        const modal = new bootstrap.Modal(document.getElementById('aboutMeModal'));
+        modal.show();
     }
     
     /**

@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  caddy:
+    container_name: caddy
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      CADDY_VERSION: v2.10.0
+      XDG_CONFIG_HOME: /config
+      XDG_DATA_HOME: /data
+    volumes:
+      - /pds/caddy/data:/data
+      - /pds/caddy/etc/caddy:/etc/caddy
+      - /pds/caddy/etc/certs:/etc/certs
+    network_mode: host
+    command:
+      - caddy
+      - run
+      - --config
+      - /etc/caddy/Caddyfile
+      - --adapter
+      - caddyfile

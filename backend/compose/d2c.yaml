@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  d2c:
+    container_name: d2c
+    image: crpi-xg6dfmt5h2etc7hg.cn-hangzhou.personal.cr.aliyuncs.com/cherry4nas/d2c:1.0.2
+    environment:
+      CRON: 0 */12 * * *
+      NETWORK: 'false'
+      NAS: ZOS
+      LANG: C.UTF-8
+      GPG_KEY: E3FF2839C048B25C084DEBE9B26995E310250568
+      PYTHON_VERSION: 3.9.22
+      PYTHON_SHA256: 8c136d199d3637a1fce98a16adc809c1d83c922d02d41f3614b34f8b6e7d38ec
+      TZ: Asia/Shanghai
+    volumes:
+      - /app/compose:/app/compose
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    network_mode: bridge
+    command: /app/run.sh

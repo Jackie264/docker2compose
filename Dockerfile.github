@@ -32,6 +32,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ /app/
+
+# 清理Python缓存文件，确保镜像中不包含旧的缓存
+RUN find /app -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true \
+    && find /app -name "*.pyc" -delete 2>/dev/null || true
+
 RUN chmod +x /app/*.sh /app/*.py
 
 EXPOSE 5000

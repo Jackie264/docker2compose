@@ -13,9 +13,17 @@
         <!-- 顶部导航栏 -->
         <header class="header">
             <div class="header-content">
-                <div class="logo">
-                    <i class="fab fa-docker"></i>
-                    <span>D2C Web UI</span>
+                <div class="header-left">
+                    <button class="btn btn-outline-light btn-sm" id="aboutMeBtn" title="关于我">
+                        <i class="fas fa-info-circle"></i>
+                        关于我
+                    </button>
+                </div>
+                <div class="header-center">
+                    <div class="logo">
+                        <img src="{{ url_for('static', filename='images/logo-main.svg') }}" alt="D2C Logo" style="height: 32px; margin-right: 10px;">
+                        <span>D2C Web UI</span>
+                    </div>
                 </div>
                 <div class="header-actions">
                     <button class="btn btn-primary" id="schedulerStatusBtn">
@@ -276,6 +284,31 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
                     <button type="button" class="btn btn-primary" id="autoRefreshToggle">
                         <i class="fas fa-sync-alt"></i> 开启自动刷新
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 关于我弹窗 -->
+    <div class="modal fade" id="aboutMeModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-info-circle"></i> 关于 D2C Web UI
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="about-image-container">
+                        <img src="{{ url_for('static', filename='images/about-me.svg') }}" alt="关于我" class="img-fluid">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" onclick="window.open('https://github.com/coracoo/docker2compose', '_blank')">
+                        <i class="fab fa-github"></i> 查看仓库
                     </button>
                 </div>
             </div>

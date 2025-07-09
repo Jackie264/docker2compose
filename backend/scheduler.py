@@ -7,10 +7,11 @@ D2C 精确调度器
 
 import os
 import sys
-import time
 import json
+import time
 from datetime import datetime, timedelta
 from croniter import croniter
+from cron_utils import CronUtils
 import pytz
 import signal
 import os
@@ -19,6 +20,11 @@ class D2CScheduler:
     def __init__(self, config_file='/app/config/config.json'):
         self.config_file = config_file
         self.running = True
+        
+        # 初始化CRON工具
+        self.cron_utils = CronUtils()
+        self.cron_utils.set_debug(True)
+        
         self.setup_signal_handlers()
         
     def setup_signal_handlers(self):
@@ -38,7 +44,9 @@ class D2CScheduler:
                 config = json.load(f)
                 # 支持大小写不敏感的键名
                 cron_expr = config.get('CRON') or config.get('cron', '*/5 * * * *')
-                return cron_expr
+                # 使用CronUtils标准化CRON表达式
+                normalized_cron = self.cron_utils.normalize_cron_expression(cron_expr)
+                return normalized_cron
         except Exception as e:
             print(f"加载配置失败: {e}")
             return '*/5 * * * *'
@@ -56,12 +64,16 @@ class D2CScheduler:
             
     def parse_cron_expression(self, cron_expr):
         """解析CRON表达式，支持5位和6位格式"""
-        fields = cron_expr.strip().split()
+        # 使用CronUtils验证CRON表达式
+        is_valid, field_count, error_msg = self.cron_utils.validate_cron_expression(cron_expr)
         
-        if len(fields) == 5:
+        if not is_valid:
+            raise ValueError(f"无效的CRON表达式: {error_msg}")
+        
+        if field_count == 5:
             # 5位格式：分 时 日 月 周
             return cron_expr, False
-        elif len(fields) == 6:
+        elif field_count == 6:
             # 6位格式：秒 分 时 日 月 周
             return cron_expr, True
         else:
