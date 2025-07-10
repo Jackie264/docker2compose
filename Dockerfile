@@ -40,6 +40,10 @@ RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple \
 COPY backend/ /app/
 RUN chmod +x /app/*.sh /app/*.py
 
+# 清理Python缓存文件，确保镜像中不包含旧的缓存
+RUN find /app -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true \
+    && find /app -name "*.pyc" -delete 2>/dev/null || true
+
 EXPOSE 5000
 
 CMD ["python3", "/app/web_ui.py"]

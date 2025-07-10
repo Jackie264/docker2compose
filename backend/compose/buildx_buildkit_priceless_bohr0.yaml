@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  buildx_buildkit_priceless_bohr0:
+    container_name: buildx_buildkit_priceless_bohr0
+    image: moby/buildkit:buildx-stable-1
+    restart: unless-stopped
+    environment:
+      BUILDKIT_SETUP_CGROUPV2_ROOT: '1'
+    volumes:
+      - buildx_buildkit_priceless_bohr0_state:/var/lib/buildkit
+    network_mode: bridge
+    privileged: true
+    entrypoint: buildkitd
+    command: --allow-insecure-entitlement=network.host
