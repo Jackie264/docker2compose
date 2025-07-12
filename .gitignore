@@ -2,6 +2,7 @@
 git-ops.sh
 d2c.tar
 d2c_*.sh
+test_entrypoint.sh
 
 # 其他可能需要忽略的文件
 __pycache__/

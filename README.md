@@ -35,6 +35,7 @@
 - 分析容器之间的网络关系（自定义network和link连接）
 - 根据网络关系将相关容器分组
 - 为每组容器生成对应的docker-compose.yaml文件（根据首个容器名称）
+- **智能时区管理**：自动读取配置文件中的时区设置并应用到容器系统，确保定时任务在正确时区执行
 - 支持提取容器的各种配置，包括：
   - 容器名称
   - 镜像
@@ -95,8 +96,11 @@
   - `true`: 默认值，在生成的compose.yaml中显式添加 `network_mode: bridge` 配置
   - `false`: 隐藏bridge网络配置，不在compose.yaml中显示 `network_mode: bridge`（因为bridge是Docker默认网络模式）
 
-- `TZ`: 时区，用于定时执行
+- `TZ`: 时区设置，影响容器内系统时间和定时任务执行
   - 默认值：`Asia/Shanghai`
+  - 支持标准时区格式：`Asia/Shanghai`、`Europe/London`、`America/New_York` 等
+  - 容器启动时会自动应用此时区设置到系统中
+  - 如果指定的时区文件不存在，系统会显示警告并使用UTC时区
 
 ### 输出目录说明
 - `/app/compose`: 脚本输出目录，默认值为`/app/compose`
@@ -115,6 +119,10 @@
 - 生成的docker-compose.yaml文件可能需要手动调整以满足特定需求
 - 通过Docker运行时，会将宿主机的Docker套接字挂载到容器中，以便获取容器信息
 - 工具支持定时执行，默认`once`（只执行一次），可通过CRON环境变量自定义执行时间
+- **时区配置重要提醒**：
+  - 容器启动时会自动读取 `config.json` 中的TZ配置并应用到系统
+  - 如果定时任务时间不准确，请检查TZ配置是否正确
+  - 可通过 `docker exec d2c-container date` 命令验证容器内时区是否正确
 - 关于Macvlan网络，DHCP的理论上会展示`macvlan:{}`，
 - 对于使用默认bridge网络但没有显式link的容器，它们可能会被分到不同的组中
 - 工具会将自定义网络标记为`external: true`，因为它假设这些网络已经存在
@@ -131,10 +139,11 @@
 ```bash
 docker run -itd --name d2c \
   -v /var/run/docker.sock:/var/run/docker.sock:ro \
-  -v /{path}/d2c/compose:/app/compose
-  -v /{path}/d2c/logs:/app/logs
-  -v /{path}/d2c/config:/app/config
+  -v /{path}/d2c/compose:/app/compose \
+  -v /{path}/d2c/logs:/app/logs \
+  -v /{path}/d2c/config:/app/config \
   -p 5000:5000 \
+  -e TZ=Asia/Shanghai \
   crpi-xg6dfmt5h2etc7hg.cn-hangzhou.personal.cr.aliyuncs.com/cherry4nas/d2c:latest
   # 或使用github镜像源：ghcr.io/coracoo/d2c:latest
 ```
@@ -149,6 +158,8 @@ services:
     container_name: d2c
     ports:
       - "5000:5000"  # Web UI端口
+    environment:
+      - TZ=Asia/Shanghai  # 可选，时区设置
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /{path}/d2c/compose:/app/compose
@@ -184,6 +195,15 @@ pip install -r requirements.txt
 -------------------------------------
 
 # 更新说明
+
+## 2025-07-12(v1.1.4)
+- 修复`Dockerfile.github`中未添加`procps`以来导致CRON无法识别启动的问题
+- 优化@Jackie264提到，关于PID 1进程管理问题：新增 `entrypoint.sh` 脚本专注于PID 1进程管理，不会自动启动调度器
+- 实现Web UI进程的监控和重启机制，调度器由Web UI界面管理
+- 添加优雅的容器停止处理，确保所有子进程正确清理
+- 避免once模式下的调度器冲突，提升容器健壮性和一致性
+- 解决子进程意外退出导致容器停止的问题
+- 修复容器内时区显示为UTC而非配置时区的问题
 
 ## 2025-07-09(v1.1.3)
 - 🎨 **UI布局优化**：
