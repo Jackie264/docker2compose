@@ -292,7 +292,7 @@
 
     <!-- 关于我弹窗 -->
     <div class="modal fade" id="aboutMeModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
@@ -301,8 +301,111 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="about-image-container">
-                        <img src="{{ url_for('static', filename='images/about-me.svg') }}" alt="关于我" class="img-fluid">
+                    <!-- 项目标题和版本号 -->
+                    <div class="text-center mb-4">
+                        <div class="d-flex align-items-center justify-content-center mb-3">
+                            <img src="{{ url_for('static', filename='images/logo-main.svg') }}" alt="D2C Logo" style="height: 48px; margin-right: 15px;">
+                            <h1 class="display-4 fw-bold mb-0 text-primary">D2C Web UI</h1>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-center">
+                            <span class="h4 me-3 text-secondary">Docker to Compose 转换工具</span>
+                            <span class="badge bg-primary px-3 py-2 fs-6">v1.1.4</span>
+                        </div>
+                    </div>
+
+                    <!-- 系统介绍 -->
+                    <div class="text-center mb-4">
+                        <div class="row justify-content-center">
+                            <div class="col-md-10">
+                                <p class="lead mb-4 text-muted">D2C Web UI 是一个强大的 Docker 容器管理工具，专门用于将运行中的 Docker 容器转换为 Docker Compose 配置文件。</p>
+                                
+                                <!-- 主要功能 -->
+                                <div class="row g-4 mb-4">
+                                    <div class="col-md-6">
+                                        <div class="feature-item p-3 border rounded">
+                                            <i class="fas fa-cubes fa-2x mb-2 text-primary"></i>
+                                            <h6>自动扫描运行中的 Docker 容器</h6>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="feature-item p-3 border rounded">
+                                            <i class="fas fa-file-code fa-2x mb-2 text-info"></i>
+                                            <h6>智能生成 Docker Compose 配置</h6>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="feature-item p-3 border rounded">
+                                            <i class="fas fa-layer-group fa-2x mb-2 text-warning"></i>
+                                            <h6>支持批量容器处理和合并</h6>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="feature-item p-3 border rounded">
+                                            <i class="fas fa-clock fa-2x mb-2 text-danger"></i>
+                                            <h6>定时任务自动化管理</h6>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 技术栈 -->
+                                <div class="row g-3 justify-content-center mb-4">
+                                    <div class="col-auto">
+                                        <span class="badge bg-primary px-3 py-2">Python Flask</span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <span class="badge bg-info px-3 py-2">Docker API</span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <span class="badge bg-warning text-dark px-3 py-2">Bootstrap 5</span>
+                                    </div>
+                                    <div class="col-auto">
+                                        <span class="badge bg-danger px-3 py-2">JavaScript</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 项目地址和作者介绍 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">🌟 开源项目</h6>
+                                    <a href="https://github.com/coracoo/docker2compose" target="_blank" class="text-decoration-none">
+                                        <i class="fab fa-github me-2"></i>https://github.com/coracoo/docker2compose
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title">📧 技术支持</h6>
+                                    <div class="text-muted">
+                                        <i class="fas fa-user-cog me-2"></i>系统管理员
+                                    </div>
+                                    <div class="small text-muted">
+                                        专注于容器化技术和自动化运维
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 感谢信息 -->
+                    <div class="text-center mb-4">
+                        <div class="small text-muted">
+                            <i class="fas fa-star me-1"></i> 开源项目 | 
+                            <i class="fas fa-code-branch me-1"></i> 技术支持 | 
+                            <i class="fas fa-tools me-1"></i> 持续更新 |
+                            <span class="ms-2">感谢使用 D2C Web UI，让容器管理更简单！</span>
+                        </div>
+                    </div>
+
+                    <!-- 底部图片 -->
+                    <div class="text-center">
+                        <img src="{{ url_for('static', filename='images/about_me.png') }}" alt="关于我" class="img-fluid" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
                     </div>
                 </div>
                 <div class="modal-footer">

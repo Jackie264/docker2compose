@@ -46,4 +46,5 @@ RUN find /app -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true 
 
 EXPOSE 5000
 
-CMD ["python3", "/app/web_ui.py"]
+# 使用entrypoint.sh作为启动脚本，解决PID 1进程管理问题
+CMD ["/app/entrypoint.sh"]
