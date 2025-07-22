@@ -46,5 +46,7 @@ RUN find /app -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true 
 
 EXPOSE 5000
 
-# 使用entrypoint.sh作为启动脚本，解决PID 1进程管理问题
-CMD ["/app/entrypoint.sh"]
+# Use entrypoint.sh as the main container process
+ENTRYPOINT ["/app/entrypoint.sh"]
+# CMD is optional when ENTRYPOINT is used, can be left empty or removed.
+CMD []
