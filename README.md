@@ -192,6 +192,30 @@ pip install -r requirements.txt
 
 5. 脚本会在当前目录下创建一个`compose`文件夹，并在其中生成docker-compose.yaml文件
 
+## 3、运行测试
+
+项目现在包含了完整的测试套件，用于验证核心功能：
+
+```bash
+# 安装测试依赖
+pip install -r requirements.txt
+
+# 运行所有测试
+python run_tests.py
+
+# 或者使用pytest直接运行
+python -m pytest tests/ -v
+```
+
+测试套件包含40个综合测试，覆盖：
+- 配置管理和验证
+- 容器分析和分组逻辑
+- CRON表达式处理
+- 调度器功能
+- Web UI工具函数
+
+详细信息请参阅 `tests/README.md`
+
 -------------------------------------
 
 # 更新说明
