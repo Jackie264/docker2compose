@@ -1,4 +1,11 @@
-# 前言
+# docker2compose
+
+[![Docker Build](https://github.com/Jackie264/docker2compose/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Jackie264/docker2compose/actions/workflows/docker-publish.yml)
+[![Tests](https://github.com/Jackie264/docker2compose/actions/workflows/test.yml/badge.svg)](https://github.com/Jackie264/docker2compose/actions/workflows/test.yml)
+[![Docker Pulls](https://img.shields.io/docker/pulls/jackie264/docker2compose)](https://hub.docker.com/r/jackie264/docker2compose)
+[![Docker Image Size](https://img.shields.io/docker/image-size/jackie264/docker2compose/latest)](https://hub.docker.com/r/jackie264/docker2compose)
+
+## 前言
 
 本工具用于读取极空间私有云系统中的存量Docker容器信息，自动生成对应的docker-compose.yaml文件。
 
@@ -215,6 +222,43 @@ python -m pytest tests/ -v
 - Web UI工具函数
 
 详细信息请参阅 `tests/README.md`
+
+## 4、Docker镜像
+
+### 4.1 从Docker Hub获取镜像
+
+项目支持自动构建多平台Docker镜像并推送到Docker Hub：
+
+```bash
+# 拉取最新版本
+docker pull jackie264/docker2compose:latest
+
+# 拉取特定版本
+docker pull jackie264/docker2compose:v1.2.3
+
+# 运行容器
+docker run -d \
+  --name docker2compose \
+  -p 5000:5000 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  jackie264/docker2compose:latest
+```
+
+### 4.2 支持的平台
+- `linux/amd64`
+- `linux/arm64` 
+- `linux/arm/v7`
+
+### 4.3 镜像仓库
+- **Docker Hub**: `jackie264/docker2compose`
+- **GitHub Container Registry**: `ghcr.io/jackie264/docker2compose`
+- **阿里云镜像仓库**: `registry.cn-hangzhou.aliyuncs.com/cherry4nas/docker2compose`
+
+### 4.4 自动构建
+- 每次推送到master分支时自动构建
+- 创建版本标签时自动构建并发布
+- 构建前会自动运行完整测试套件
+- 详细设置说明请参阅 `docs/DOCKER_HUB_SETUP.md`
 
 -------------------------------------
 
