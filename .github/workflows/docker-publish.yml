@@ -102,7 +102,7 @@ jobs:
             org.opencontainers.image.documentation="https://github.com/Jackie264/docker2compose/blob/master/README.md"
 
       - name: Build and push Docker images
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile.github
