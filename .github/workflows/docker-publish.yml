@@ -5,7 +5,7 @@ on:
     tags:
       - "v*.*.*"
     branches:
-      - master
+      - dev
   pull_request:
     branches:
       - master
@@ -86,8 +86,6 @@ jobs:
         with:
           images: |
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
-            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
-            ${{ secrets.ALI_REGISTRY }}/cherry4nas/${{ env.IMAGE_NAME }}
           tags: |
             type=semver,pattern={{version}}
             type=ref,event=branch
@@ -115,7 +113,7 @@ jobs:
           
       - name: Update Docker Hub description
         uses: peter-evans/dockerhub-description@v3
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/dev'
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
