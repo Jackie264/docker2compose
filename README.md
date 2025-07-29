@@ -233,9 +233,6 @@ python -m pytest tests/ -v
 # 拉取最新版本
 docker pull jackie264/docker2compose:latest
 
-# 拉取特定版本
-docker pull jackie264/docker2compose:v1.2.3
-
 # 运行容器
 docker run -d \
   --name docker2compose \
@@ -251,7 +248,7 @@ docker run -d \
 
 ### 4.3 镜像仓库
 - **Docker Hub**: `jackie264/docker2compose`
-- **GitHub Container Registry**: `ghcr.io/jackie264/docker2compose`
+- **GitHub Container Registry**: `ghcr.io/coracoo/docker2compose`
 - **阿里云镜像仓库**: `registry.cn-hangzhou.aliyuncs.com/cherry4nas/docker2compose`
 
 ### 4.4 自动构建
