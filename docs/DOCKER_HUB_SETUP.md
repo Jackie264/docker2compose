@@ -66,7 +66,7 @@
 ### 4.2 镜像仓库
 构建的镜像会推送到：
 1. **Docker Hub**: `your-username/docker2compose`
-2. **GitHub Container Registry**: `ghcr.io/jackie264/docker2compose`
+2. **GitHub Container Registry**: `ghcr.io/coracoo/docker2compose`
 3. **阿里云镜像仓库**（如果配置）: `your-registry/cherry4nas/docker2compose`
 
 ## 5. 使用构建的镜像
