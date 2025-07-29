@@ -138,7 +138,8 @@ validate_cron() {
         return 1
     fi
     for field in $cron_expr; do
-        if ! echo "$field" | grep -q '^[0-9*/,?-]*$' 2>/dev/null; then
+#        if ! echo "$field" | grep -q '^[0-9*/,?-]*$' 2>/dev/null; then
+        if ! echo "$field" | grep -qE '^[0-9A-Za-z*/,\-?]+$' 2>/dev/null; then
             return 1
         fi
     done
