@@ -233,6 +233,10 @@ python -m pytest tests/ -v
 # 拉取最新版本
 docker pull jackie264/docker2compose:latest
 
+- **Docker Hub**: `jackie264/docker2compose`
+- **GitHub Container Registry**: `ghcr.io/coracoo/docker2compose`
+- **阿里云镜像仓库**: `crpi-xg6dfmt5h2etc7hg.cn-hangzhou.personal.cr.aliyuncs.com/cherry4nas/docker2compose`
+
 # 运行容器
 docker run -d \
   --name docker2compose \
@@ -241,17 +245,12 @@ docker run -d \
   jackie264/docker2compose:latest
 ```
 
-### 4.2 支持的平台
+### 4.1 支持的平台
 - `linux/amd64`
 - `linux/arm64` 
 - `linux/arm/v7`
 
-### 4.3 镜像仓库
-- **Docker Hub**: `jackie264/docker2compose`
-- **GitHub Container Registry**: `ghcr.io/coracoo/docker2compose`
-- **阿里云镜像仓库**: `registry.cn-hangzhou.aliyuncs.com/cherry4nas/docker2compose`
-
-### 4.4 自动构建
+### 4.2 自动构建
 - 每次推送到master分支时自动构建
 - 创建版本标签时自动构建并发布
 - 构建前会自动运行完整测试套件
@@ -260,6 +259,13 @@ docker run -d \
 -------------------------------------
 
 # 更新说明
+
+## 2025-07-30(v1.1.5)
+- 增加了完整的test套件（@Jackie264）
+- 增加了docker.hub镜像源（@jackie264）
+- 优化了`entrypoint.sh`，优化了部分`icon`图标更新（@jackie264）
+- 使用 Dependabot 自动更新所需的依赖项（@jackie264）
+- 修复部分CRON会导致调度器异常以及无法重启的问题（@jackie264）
 
 ## 2025-07-12(v1.1.4)
 - 修复`Dockerfile.github`中未添加`procps`以来导致CRON无法识别启动的问题

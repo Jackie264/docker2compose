@@ -3,6 +3,9 @@ version: '3.8'
 services:
   docker2compose:
     image: jackie264/docker2compose:latest
+    # Docker Hub：jackie264/docker2compose:latest
+    # GitHub 容器注册表 ： ghcr.io/coracoo/docker2compose:latest
+    # 国内阿里云镜像仓库: crpi-xg6dfmt5h2etc7hg.cn-hangzhou.personal.cr.aliyuncs.com/cherry4nas/docker2compose:latest
     container_name: docker2compose
     ports:
       - "5000:5000"
