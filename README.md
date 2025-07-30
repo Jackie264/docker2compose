@@ -225,24 +225,14 @@ python -m pytest tests/ -v
 
 ## 4、Docker镜像
 
-### 4.1 从Docker Hub获取镜像
+### 4.1 镜像版本
 
 项目支持自动构建多平台Docker镜像并推送到Docker Hub：
 
 ```bash
-# 拉取最新版本
-docker pull jackie264/docker2compose:latest
-
 - **Docker Hub**: `jackie264/docker2compose`
-- **GitHub Container Registry**: `ghcr.io/coracoo/docker2compose`
-- **阿里云镜像仓库**: `crpi-xg6dfmt5h2etc7hg.cn-hangzhou.personal.cr.aliyuncs.com/cherry4nas/docker2compose`
-
-# 运行容器
-docker run -d \
-  --name docker2compose \
-  -p 5000:5000 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  jackie264/docker2compose:latest
+- **GitHub Container Registry**: `ghcr.io/coracoo/d2c`
+- **阿里云镜像仓库**: `crpi-xg6dfmt5h2etc7hg.cn-hangzhou.personal.cr.aliyuncs.com/cherry4nas/d2c`
 ```
 
 ### 4.1 支持的平台
