@@ -74,7 +74,7 @@ jobs:
       
       - name: Login to Ali Registry
         uses: docker/login-action@v3
-        if: secrets.ALI_REGISTRY != ''
+        if: ${{ secrets.ALI_REGISTRY != '' }}
         with:
           registry: ${{ secrets.ALI_REGISTRY }}
           username: ${{ secrets.ALI_USERNAME }}
