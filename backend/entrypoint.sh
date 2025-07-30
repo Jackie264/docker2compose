@@ -134,17 +134,11 @@ mkdir -p "$OUTPUT_DIR" # 确保输出目录创建
 validate_cron() {
     local cron_expr="$1"
     local field_count=$(echo "$cron_expr" | awk '{print NF}')
-    if [ "$field_count" -ne 5 ] && [ "$field_count" -ne 6 ]; then
+    if [ "$field_count" -lt 5 ] || [ "$field_count" -gt 6 ]; then
         return 1
     fi
-    for field in $cron_expr; do
-        if ! echo "$field" | grep -q '^[0-9*/,?-]*$' 2>/dev/null; then
-            return 1
-        fi
-    done
     return 0
 }
-
 
 if [ "$CRON" = "once" ]; then
     print_info "执行一次性任务..."
