@@ -114,7 +114,7 @@ jobs:
           cache-to: type=gha,mode=max
           
       - name: Update Docker Hub description
-        uses: peter-evans/dockerhub-description@v3
+        uses: peter-evans/dockerhub-description@v4
         if: github.ref == 'refs/heads/master'
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
